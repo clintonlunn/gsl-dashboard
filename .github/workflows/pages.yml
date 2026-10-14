@@ -1,0 +1,55 @@
+name: Publish to GitHub Pages
+
+on:
+  schedule:
+    - cron: "17 * * * *" # hourly, matching the local server's refresh
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TZ: America/Denver # "today" and the presets follow Utah time
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install duckdb==1.4.3
+      # keep the database between runs so each run only pulls what's new instead of the whole record
+      - uses: actions/cache/restore@v4
+        with:
+          path: gsl.duckdb
+          key: gsl-db-${{ github.run_id }}
+          restore-keys: gsl-db-
+      - run: python server.py --export _site
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: gsl.duckdb
+          key: gsl-db-${{ github.run_id }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -529,7 +529,7 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
   }
   document.getElementById('hist-apply').addEventListener('click', () => {
     if (!histZoom) return;
-    fromIn.value = isoDay(histZoom[0]); toIn.value = isoDay(histZoom[1]); syncPreset(); form.requestSubmit();
+    fromIn.value = isoDay(histZoom[0]); toIn.value = isoDay(histZoom[1]); syncPreset(); if (!STATIC) form.requestSubmit();
     showTab(document.getElementById('tab-glance'), true);
   });
 
@@ -848,16 +848,28 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
     css, fmtInt, fmt1, pretty, parseDay, parseHour, isoDay, addDays, fmtDay, el, b, link, cite, chart, emptyChart, base, lineChart,
     GAL_PER_AF, get ugs() { return DATA?.config?.ugs || {}; }, isShown: (tab) => !document.getElementById(`panel-${tab}`).hidden,
   };
-  fetch('/api/panels').then(r => r.json()).then(files => files.forEach(f => document.body.append(el('script', { src: `panels/${f}` })))).catch(() => {});
+  // the GitHub Pages copy has no server: the export step writes the same JSON under data/ and inlines GSL_STATIC
+  const STATIC = window.GSL_STATIC || null;
+  const api = {
+    panels: () => fetch(STATIC ? 'data/panels.json' : '/api/panels'),
+    history: () => fetch(STATIC ? 'data/history.json' : '/api/history'),
+    data: (from, to) => {
+      if (!STATIC) return fetch(`/api/data?${new URLSearchParams({ from, to })}`);
+      const w = STATIC.windows.find(x => x.from === from && x.to === to);
+      if (!w) return Promise.resolve(new Response(JSON.stringify({ error: 'This published copy only has the preset periods. Run the dashboard locally for other dates' }), { status: 404 }));
+      return fetch(w.file);
+    },
+  };
+  api.panels().then(r => r.json()).then(files => files.forEach(f => document.body.append(el('script', { src: `panels/${f}` })))).catch(() => {});
 
   // ---------------------------------------------------------------- period controls
   const form = document.getElementById('period'), preset = document.getElementById('preset');
   const fromIn = document.getElementById('from'), toIn = document.getElementById('to');
-  const today = () => isoDay(new Date());
-  const daysAgo = (n) => isoDay(addDays(new Date(), -n));
+  const today = () => STATIC ? STATIC.today : isoDay(new Date());
+  const daysAgo = (n) => isoDay(addDays(parseDay(today()), -n));
   function syncPreset() {
     const match = [...preset.options].find(o => o.dataset.from === fromIn.value && o.dataset.to === toIn.value);
-    preset.value = match ? match.value : 'custom';
+    preset.value = match ? match.value : STATIC ? '' : 'custom';
   }
   function setPresetDates() {
     for (const o of preset.options) if (/^\d+$/.test(o.value)) { o.dataset.from = daysAgo(+o.value - 1); o.dataset.to = today(); }
@@ -888,14 +900,14 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
     history.replaceState(null, '', `?${q}${location.hash}`);
     status.textContent = 'Loading data.';
     document.getElementById('answer-h').textContent = 'Loading…';
-    const r = await fetch(`/api/data?${q}`); const j = await r.json();
+    const r = await api.data(fromIn.value, toIn.value); const j = await r.json();
     if (!r.ok) throw new Error(j.error || r.statusText);
     DATA = j; addEventPresets(j.events); render();
     status.textContent = `Showing ${windowText(j.window).when}.`;
   }
   function showError(e) {
     document.getElementById('answer-h').replaceChildren(el('span', { className: 'err', textContent: `Couldn't load the gauge data: ${e.message}.` }));
-    document.getElementById('answer-p').textContent = 'Check the dates, or check that the server is running and press Refresh data.';
+    document.getElementById('answer-p').textContent = STATIC ? 'Pick one of the periods in the list.' : 'Check the dates, or check that the server is running and press Refresh data.';
     status.textContent = 'Loading failed.';
   }
 
@@ -905,7 +917,7 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
   fromIn.max = toIn.max = today();
   syncPreset();
   load().catch(showError);
-  const loadHistory = () => HIST ? Promise.resolve() : fetch('/api/history').then(r => r.json()).then(j => { HIST = j; })
+  const loadHistory = () => HIST ? Promise.resolve() : api.history().then(r => r.json()).then(j => { HIST = j; })
     .catch(() => emptyChart('chart-history', 'Couldn\'t load the history.'));
 
   // tabs: three levels of detail; arrow keys move between them, the choice is kept in the link
@@ -952,6 +964,13 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
   chrome(); addEventListener('resize', chrome);
   document.fonts?.ready.then(() => { render(); if (!document.getElementById('panel-history').hidden) drawHistory(); });
   const btn = document.getElementById('refresh');
+  if (STATIC) {
+    // published copy: data rebuilds on a schedule, and only exported periods exist
+    btn.hidden = true;
+    document.getElementById('hist-apply').hidden = true;
+    preset.querySelector('option[value="custom"]').remove();
+    form.querySelectorAll('input[type="date"], button[type="submit"]').forEach(x => { x.closest('label')?.setAttribute('hidden', ''); if (x.type === 'submit') x.hidden = true; });
+  }
   btn.addEventListener('click', async () => {
     btn.disabled = true; btn.textContent = 'Refreshing…'; status.textContent = 'Refreshing data.';
     try { const r = await fetch('/api/refresh', { method: 'POST' }); const j = await r.json(); if (!r.ok) throw new Error(j.error); setPresetDates(); await load(); status.textContent = 'Data updated.'; }

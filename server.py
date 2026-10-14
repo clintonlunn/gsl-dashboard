@@ -15,6 +15,7 @@ import gzip
 import json
 import os
 import re
+import shutil
 import tempfile
 import threading
 import time
@@ -28,7 +29,7 @@ import sources
 import sources._ugs
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(HERE, "gsl.duckdb")
+DB_PATH = os.environ.get("GSL_DB", os.path.join(HERE, "gsl.duckdb"))
 STATIC = os.path.join(HERE, "static")
 AREA_CSV = os.path.join(HERE, "ref", "gsl_area_ngvd29.csv")
 
@@ -580,12 +581,54 @@ def refresher():
         time.sleep(REFRESH_SEC)
 
 
+def dump(path, obj):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(obj, f, default=str, separators=(",", ":"))
+
+
+def export(out_dir):
+    """Write a server-free copy of the page for GitHub Pages: the static files plus one JSON per preset period."""
+    refresh()
+    today = dt.date.today()
+    shutil.rmtree(out_dir, ignore_errors=True)
+    shutil.copytree(STATIC, out_dir)
+    data = os.path.join(out_dir, "data")
+    panels = sorted(f for f in os.listdir(os.path.join(STATIC, "panels")) if f.endswith(".js"))
+    dump(os.path.join(data, "panels.json"), panels)
+    dump(os.path.join(data, "history.json"), query_history())
+    # the page's presets: last 7/30/365/3652 days, plus the rain events it lists (a day either side, capped at today)
+    wanted = [(today - dt.timedelta(days=n - 1), today) for n in (7, 30, 365, 3652)]
+    first = query_window(*wanted[0])
+    for e in first.get("events", [])[:8]:
+        s, t = dt.date.fromisoformat(str(e["start_day"])[:10]), dt.date.fromisoformat(str(e["end_day"])[:10])
+        wanted.append((s - dt.timedelta(days=1), min(t + dt.timedelta(days=1), today)))
+    windows = []
+    for a, b in dict.fromkeys(wanted):
+        out = first if (a, b) == wanted[0] else query_window(a, b)
+        rel = f"data/window/{a}_{b}.json"
+        dump(os.path.join(out_dir, rel), out)
+        windows.append({"from": a.isoformat(), "to": b.isoformat(), "file": rel})
+        print(f"exported {rel}", flush=True)
+    manifest = {"today": today.isoformat(), "built_at": dt.datetime.now().isoformat(timespec="minutes"), "windows": windows}
+    index = os.path.join(out_dir, "index.html")
+    with open(index) as f:
+        html = f.read()
+    tag = f"<script>window.GSL_STATIC = {json.dumps(manifest)};</script>"
+    with open(index, "w") as f:
+        f.write(html.replace("</head>", f"{tag}\n</head>", 1))
+    open(os.path.join(out_dir, ".nojekyll"), "w").close()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--host", default="127.0.0.1")
+    ap.add_argument("--export", metavar="DIR", help="write a static copy for GitHub Pages to DIR and exit")
     args = ap.parse_args()
     init_db()
+    if args.export:
+        return export(args.export)
     threading.Thread(target=refresher, daemon=True).start()
     print(f"serving http://{args.host}:{args.port}", flush=True)
     ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
