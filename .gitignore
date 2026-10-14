@@ -1,0 +1,7 @@
+# Local data cache (rebuilt from public sources by server.py)
+*.duckdb
+*.duckdb.wal
+server.log
+__pycache__/
+*.pyc
+.env

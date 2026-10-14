@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Great Salt Lake Water Check</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: strip-chart recorder. Plain answer first, ruled sections, instrument detail folded below.
+   Contrast (WCAG 2.1): ink 15.7/14.5, ink-2 6.6/6.5, pen 5.4/7.4, off-bar 3.5/3.5 on paper (light/dark) */
+:root {
+  --paper: #f4f6f3; --ink: #11181c; --ink-2: #4a565d; --rule: #11181c; --grid: #dbe3dd; --grid-major: #bccabf;
+  --pen: #b03f00; --off: #7a8780; --hydro: #2e5f7a; --hydro-fill: #c9d8e0; --healthy: #2f6b3a; --healthy-fill: #cfe3d2; --bad: #a3221b;
+  --bear: #2e5f7a; --weber: #6b4f9e; --jordan: #b03f00; --rain: #5f8fa8;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0c100f; --ink: #d9e2dc; --ink-2: #8c9a92; --rule: #d9e2dc; --grid: #1a2420; --grid-major: #2a3832;
+    --pen: #ff7a2e; --off: #5d6d65; --hydro: #6fa6c4; --hydro-fill: #1f3644; --healthy: #7cc58a; --healthy-fill: #183222; --bad: #f2867f;
+    --bear: #6fa6c4; --weber: #b39ddb; --jordan: #ff7a2e; --rain: #8fb8cc; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0c100f; --ink: #d9e2dc; --ink-2: #8c9a92; --rule: #d9e2dc; --grid: #1a2420; --grid-major: #2a3832;
+  --pen: #ff7a2e; --off: #5d6d65; --hydro: #6fa6c4; --hydro-fill: #1f3644; --healthy: #7cc58a; --healthy-fill: #183222; --bad: #f2867f;
+  --bear: #6fa6c4; --weber: #b39ddb; --jordan: #ff7a2e; --rain: #8fb8cc; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+.panel[hidden] { display: none !important; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.55 var(--sans); }
+.wrap { padding: 20px clamp(16px, 3vw, 48px) 48px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+a { color: var(--hydro); text-underline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--pen); outline-offset: 2px; }
+
+header { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 2px solid var(--rule); }
+.brand { font: 600 1rem var(--mono); letter-spacing: .06em; text-transform: uppercase; margin: 0; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font: .875rem var(--mono); color: var(--ink-2); }
+button, select, input[type="date"] { font: 500 .875rem var(--mono); padding: 6px 10px; border-radius: 0; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); min-height: 36px; }
+button { cursor: pointer; background: transparent; }
+button:hover { background: var(--ink); color: var(--paper); }
+button[disabled] { opacity: .65; cursor: progress; }
+
+.period { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; padding: 14px 0; border-bottom: 1px solid var(--grid-major); }
+.period label { display: grid; gap: 2px; font-size: .8125rem; color: var(--ink-2); }
+.period select { max-width: 100%; }
+
+.answer { padding: 24px 0; border-bottom: 1px solid var(--rule); }
+.answer .when { font: 500 .875rem var(--mono); color: var(--ink-2); margin: 0 0 6px; }
+.answer h1 { font: 500 clamp(1.6rem, 4.2vw, 2.6rem)/1.18 var(--sans); margin: 0; text-wrap: balance; max-width: 30ch; }
+.answer h1 .num { font-family: var(--mono); color: var(--pen); white-space: nowrap; }
+.answer p { font-size: 1.125rem; margin: 12px 0 0; max-width: 70ch; }
+.answer p b { font-family: var(--mono); font-weight: 600; }
+
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); border-bottom: 1px solid var(--rule); }
+.fact { padding: 18px 20px 20px; border-left: 1px solid var(--grid-major); min-width: 0; }
+.fact:first-child { border-left: 0; padding-left: 0; }
+.fact h2, .section h2 { font: 600 1.05rem/1.3 var(--sans); margin: 0; }
+.fact .lead { margin: 4px 0 12px; color: var(--ink-2); font-size: .95rem; }
+.fact .lead b { color: var(--ink); font-family: var(--mono); font-weight: 600; }
+.flowlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.flowlist li { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--grid); padding-bottom: 6px; }
+.flowlist .x { font: 600 1.05rem var(--mono); color: var(--pen); text-align: right; }
+.flowlist .x.calm { color: var(--ink); }
+.flowlist small { display: block; color: var(--ink-2); font-size: .85rem; }
+
+/* water ledger: amounts in and out as a table with bars drawn from a shared zero line */
+.ledger table { font: .8125rem var(--mono); }
+.ledger caption { font-size: .8125rem; }
+.ledger th, .ledger td { padding: 4px 6px; white-space: normal; }
+.ledger th[scope="row"] { font: 500 .875rem var(--sans); color: var(--ink); text-align: left; }
+.ledger td.num { text-align: right; white-space: nowrap; }
+.ledger td.barcell { width: 38%; padding-left: 0; padding-right: 0; }
+.ledger .lbar { position: relative; height: 12px; }
+.ledger .lbar::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; border-left: 1px solid var(--rule); }
+.ledger .lbar span { position: absolute; top: 0; height: 12px; }
+.ledger .lbar .in { left: 50%; background: var(--hydro); }
+.ledger .lbar .out { right: 50%; background: repeating-linear-gradient(45deg, var(--pen) 0 3px, transparent 3px 6px); border: 1px solid var(--pen); }
+.ledger tr.net th, .ledger tr.net td { border-top: 2px solid var(--rule); font-weight: 600; }
+.ledger tr.sub th { color: var(--ink-2); font-weight: 400; }
+.ledger tr.group th { font: 600 .75rem var(--mono); color: var(--ink-2); text-transform: uppercase; letter-spacing: .05em; padding-top: 10px; }
+.ledger small { display: block; color: var(--ink-2); font: .75rem var(--sans); }
+
+/* water-source split bar */
+.split { display: flex; height: 26px; width: 100%; border: 1px solid var(--rule); }
+.split span { display: block; height: 100%; min-width: 3px; }
+.split-key { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font: .8125rem var(--mono); }
+.split-key li { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; }
+.split-key i { width: 12px; height: 12px; display: block; }
+.split-key .v { color: var(--ink-2); }
+
+/* healthy ruler */
+.ruler { position: relative; height: 84px; margin: 4px 10px 0; font: 12px var(--mono); color: var(--ink-2); }
+.ruler .axis { position: absolute; left: 0; right: 0; top: 44px; border-top: 1px solid var(--rule); }
+.ruler .band { position: absolute; top: 26px; height: 18px; background: var(--healthy-fill); border: 1px solid var(--healthy); }
+.ruler .band-l { position: absolute; top: 4px; transform: translateX(-50%); color: var(--healthy); white-space: nowrap; }
+.ruler .tick { position: absolute; top: 44px; height: 5px; border-left: 1px solid var(--rule); }
+.ruler .tick-l { position: absolute; top: 52px; transform: translateX(-50%); }
+.ruler .low { position: absolute; top: 30px; height: 14px; border-left: 1px dashed var(--ink-2); }
+.ruler .low-l { position: absolute; top: 68px; white-space: nowrap; }
+.ruler .now { position: absolute; top: 30px; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 14px solid var(--pen); transform: translateX(-50%); }
+.ruler .now-l { position: absolute; top: 4px; transform: translateX(-50%); color: var(--ink); white-space: nowrap; }
+
+.section { padding: 20px 0; border-bottom: 1px solid var(--rule); }
+.section .note { font-size: .95rem; color: var(--ink-2); margin: 4px 0 12px; max-width: 80ch; }
+.wide2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 38rem), 1fr)); column-gap: 32px; }
+.wide2 > .section, .grid2 > .section { min-width: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); column-gap: 28px; }
+.chart { width: 100%; height: 280px; }
+.chart.tall { height: 360px; }
+.empty { color: var(--ink-2); font-size: .95rem; margin: 0; }
+.err { color: var(--bad); }
+.ugs-badge { display: inline-block; font: 600 .6875rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; vertical-align: .15em;
+  padding: 3px 6px; background: var(--ink); color: var(--paper); }
+.src { font-size: .8125rem; color: var(--ink-2); margin: 8px 0 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .875rem; color: var(--ink-2); margin: 0 0 10px; padding: 0; list-style: none; }
+.legend i { display: inline-block; width: 14px; height: 10px; margin-right: 6px; }
+.legend .on { background: var(--pen); }
+.legend .offk { background: repeating-linear-gradient(45deg, var(--off) 0 2px, transparent 2px 5px); border: 1.5px solid var(--off); }
+.legend .med { height: 0; border-top: 2px dashed var(--ink); vertical-align: middle; }
+.hist-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0 0 8px; font-size: .875rem; color: var(--ink-2); }
+
+.map { height: clamp(340px, 40vw, 580px); border: 1px solid var(--rule); background: var(--grid); }
+.maplibregl-popup-content { background: var(--paper); color: var(--ink); border: 1px solid var(--ink); border-radius: 0; font: 12px/1.5 var(--mono); padding: 8px 10px; }
+.maplibregl-popup-tip { display: none; }
+.maplibregl-popup-close-button { color: var(--ink); font-size: 16px; }
+.maplibregl-ctrl-attrib { font: 11px var(--sans); }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--rule); }
+.tabs [role="tab"] { border: 0; border-bottom: 3px solid transparent; background: none; color: var(--ink-2); font: 600 .9375rem var(--sans); padding: 10px 16px 8px; min-height: 44px; }
+.tabs [role="tab"]:hover { color: var(--ink); background: none; }
+.tabs [role="tab"][aria-selected="true"] { color: var(--ink); border-bottom-color: var(--pen); }
+
+/* At a glance fits one screen on a laptop or larger: answer and facts on the left, map over lake chart on the right */
+@media (min-width: 1100px) and (min-height: 680px) {
+  .glance { display: grid; grid-template-columns: minmax(340px, 31rem) 1fr; grid-template-rows: auto 1fr; column-gap: 32px;
+    height: calc(100dvh - var(--chrome, 160px)); min-height: 560px; }
+  .glance .answer { grid-column: 1; grid-row: 1; padding: 16px 0 12px; }
+  .glance .answer h1 { font-size: clamp(1.4rem, 2.2vw, 2rem); }
+  .glance .answer p { font-size: 1rem; }
+  .glance .facts { grid-column: 1; grid-row: 2; display: block; overflow-y: auto; overflow-x: hidden; border-bottom: 0; min-height: 0; padding-right: 6px; }
+  .glance .fact { border-left: 0; padding: 12px 0; border-top: 1px solid var(--grid-major); }
+  .glance .visuals { grid-column: 2; grid-row: 1 / 3; display: grid; grid-template-columns: 1fr; grid-template-rows: minmax(0, 3fr) minmax(0, 2fr); min-height: 0; }
+  .glance .visuals > .section { display: flex; flex-direction: column; min-height: 0; padding: 12px 0; }
+  .glance .visuals .note { margin-bottom: 6px; }
+  .glance .map { flex: 1; height: auto; min-height: 220px; }
+  .glance #chart-lake-level { flex: 1; height: auto; min-height: 140px; }
+}
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); border-block: 1px solid var(--rule); }
+.tile { padding: 12px 14px; border-left: 1px solid var(--grid-major); min-width: 0; }
+.tile:first-child { border-left: 0; padding-left: 0; }
+.tile .lbl { font: 500 .8125rem var(--sans); color: var(--ink-2); }
+.tile .val { font: 500 1.6rem/1.15 var(--mono); margin-top: 2px; }
+.tile .unit { font-size: .875rem; color: var(--ink-2); margin-left: .3em; }
+.tile .sub { font-size: .8125rem; color: var(--ink-2); margin-top: 2px; }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font: .9rem var(--mono); font-variant-numeric: tabular-nums; }
+caption { text-align: left; color: var(--ink-2); font: .9rem var(--sans); padding-bottom: 6px; }
+th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--grid-major); white-space: nowrap; }
+th { font: 500 .8125rem var(--sans); color: var(--ink-2); border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { padding-left: 0; }
+th:nth-child(-n+3), td:nth-child(-n+3) { text-align: left; }
+.method { padding: 18px 0 8px; font-size: .9rem; color: var(--ink-2); max-width: 85ch; display: grid; gap: 8px; }
+.method p { margin: 0; }
+.method b { color: var(--ink); }
+.glossary { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
+.glossary dt { font: 600 .9rem var(--mono); color: var(--ink); }
+.glossary dd { margin: 0; }
+footer.sources { padding: 18px 0 0; font-size: .875rem; color: var(--ink-2); }
+footer.sources h2 { font: 600 .95rem var(--sans); color: var(--ink); margin: 0 0 6px; }
+footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="brand">Great Salt Lake water check</p>
+    <div class="bar">
+      <span id="asof"></span>
+      <button id="sources-btn" type="button">Sources</button>
+      <button id="refresh" type="button">Refresh data</button>
+      <span id="status" class="sr-only" role="status" aria-live="polite"></span>
+    </div>
+  </header>
+
+  <form class="period" id="period" aria-label="Choose a time period">
+    <label for="preset">Period
+      <select id="preset">
+        <option value="7">Last 7 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="365">Last year</option>
+        <option value="3652">Last 10 years</option>
+        <option value="custom">Custom dates</option>
+      </select>
+    </label>
+    <label for="from">From <input type="date" id="from" min="1847-10-18" required></label>
+    <label for="to">To <input type="date" id="to" min="1847-10-18" required></label>
+    <button type="submit">Show</button>
+  </form>
+
+  <div class="tabs" role="tablist" aria-label="Level of detail">
+    <button type="button" role="tab" id="tab-glance" aria-controls="panel-glance" aria-selected="true">At a glance</button>
+    <button type="button" role="tab" id="tab-history" aria-controls="panel-history" aria-selected="false" tabindex="-1">History</button>
+    <button type="button" role="tab" id="tab-ag" aria-controls="panel-ag" aria-selected="false" tabindex="-1">Farms and water</button>
+    <button type="button" role="tab" id="tab-details" aria-controls="panel-details" aria-selected="false" tabindex="-1">Details and method</button>
+  </div>
+
+  <main>
+  <div class="panel glance" id="panel-glance" role="tabpanel" aria-labelledby="tab-glance">
+    <section class="answer" aria-labelledby="answer-h" aria-live="polite">
+      <p class="when" id="when"></p>
+      <h1 id="answer-h">Loading the latest gauge readings…</h1>
+      <p id="answer-p"></p>
+      <p class="src" id="src-answer"></p>
+    </section>
+
+    <section class="facts" id="panels-glance" aria-label="Key facts">
+      <div class="fact ledger" id="ledger-fact">
+        <h2 id="ledger-h">The lake's water ledger</h2>
+        <p class="lead" id="ledger-lead">—</p>
+        <div id="ledger"></div>
+        <p class="src" id="src-ledger"></p>
+      </div>
+      <div class="fact">
+        <h2>Where the water came from</h2>
+        <p class="lead" id="source-lead">—</p>
+        <div id="split"></div>
+        <p class="src" id="src-source"></p>
+      </div>
+      <div class="fact">
+        <h2>How far from healthy</h2>
+        <p class="lead" id="health-lead">—</p>
+        <div class="ruler" id="ruler" role="img"></div>
+        <p class="src">"Healthy" is the range where the state's lake-level matrix rates brine shrimp, birds, wetlands, air quality from dust, and lake industries as being in good shape. Below it, exposed lakebed and rising salinity start to harm them.</p>
+        <p class="src" id="src-health"></p>
+      </div>
+      <div class="fact">
+        <h2>Rivers and creeks</h2>
+        <p class="lead" id="flow-lead"></p>
+        <ul class="flowlist" id="flowlist"></ul>
+        <p class="src" id="src-flow"></p>
+      </div>
+    </section>
+
+    <div class="wide2 visuals">
+      <section class="section" aria-labelledby="map-h">
+        <h2 id="map-h">Where we measure</h2>
+        <p class="note">Dots are USGS gauges: black ones had readings for this period, white ones had none, and the orange one measures the lake's water level. Names hide when they would overlap; zoom in to see more. Select a dot for its numbers. Use two fingers or Ctrl + scroll to zoom.</p>
+        <div id="map" class="map"></div>
+        <label class="src" for="show-wetlands"><input type="checkbox" id="show-wetlands"> Show UGS wetland survey sites (green dots: reference-quality sites are solid, others hollow)</label>
+        <p class="src" id="imagery-note"></p>
+        <p class="src" id="src-map"></p>
+        <ul class="sr-only" id="map-list" aria-label="Gauges on the map"></ul>
+      </section>
+
+      <section class="section" aria-labelledby="level-h">
+        <h2 id="level-h">What the lake gauge shows</h2>
+        <p class="note">Water level at Saltair, on the south shore. The shaded part is the period you picked; the dashed line is the level just before it. Sharp jumps are wind sloshing water toward the shore, not new water, so compare calm stretches.</p>
+        <div class="chart" id="chart-lake-level"></div>
+        <p class="src" id="src-level"></p>
+      </section>
+    </div>
+
+  </div>
+
+  <div class="panel" id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+    <section class="section" aria-labelledby="hist-h">
+      <h2 id="hist-h">The lake since 1847</h2>
+      <p class="note">Weekly average level at Saltair. The green band is the healthy range and the dashed line is the 2022 record low. Drag the slider under the chart to zoom, then show that stretch on the whole page.</p>
+      <div class="hist-bar"><span id="hist-range"></span><button type="button" id="hist-apply">Show this stretch</button></div>
+      <div class="chart tall" id="chart-history"></div>
+      <p class="src" id="src-history"></p>
+    </section>
+
+    <section class="section" aria-labelledby="annual-h">
+      <h2 id="annual-h">River water reaching the lake each year</h2>
+      <p class="note">Total flow at the last gauge on each river, by water year (October through September, named for the year it ends). Years with big gaps in the record are left out; the Bear River record starts in 1950.</p>
+      <div class="chart tall" id="chart-annual"></div>
+      <p class="src" id="src-annual"></p>
+    </section>
+    <div id="panels-history"></div>
+
+  </div>
+
+  <div class="panel" id="panel-ag" role="tabpanel" aria-labelledby="tab-ag" hidden>
+    <div id="panels-ag"><p class="note" id="ag-empty">Loading farm water figures…</p></div>
+  </div>
+
+  <div class="panel" id="panel-details" role="tabpanel" aria-labelledby="tab-details" hidden>
+
+      <div class="tiles">
+        <div class="tile"><div class="lbl">Lake gauge change</div><div class="val"><span id="t-change">—</span><span class="unit">in</span></div><div class="sub">Last day vs the day before, now <span id="t-level">—</span> ft</div></div>
+        <div class="tile"><div class="lbl">Rain on the lake</div><div class="val"><span id="t-rain">—</span><span class="unit">in</span></div><div class="sub">Middle value of <span id="t-stations">—</span> lowland stations</div></div>
+        <div class="tile"><div class="lbl">River water in</div><div class="val"><span id="t-river">—</span><span class="unit">acre-ft</span></div><div class="sub" id="t-excess-sub"><span id="t-excess">—</span> acre-ft above normal</div></div>
+        <div class="tile"><div class="lbl">Lake surface</div><div class="val"><span id="t-area">—</span><span class="unit">acres</span></div><div class="sub">At <span id="t-area-lvl">—</span> ft, from USGS tables</div></div>
+      </div>
+      <p class="src" id="src-tiles"></p>
+
+      <div class="grid2">
+        <section class="section" aria-labelledby="flow-h">
+          <h2 id="flow-h">Flow reaching the lake</h2>
+          <p class="note" id="flow-note">Flow in cubic feet per second at the last gauge on each river. Dashed lines are normal flow; the shaded area is your period.</p>
+          <div class="chart" id="chart-rivers"></div>
+          <p class="src" id="src-rivers"></p>
+        </section>
+        <section class="section" aria-labelledby="jump-h">
+          <h2 id="jump-h">Biggest jump upstream</h2>
+          <p class="note" id="jump-note">The upstream gauge running furthest above its normal flow.</p>
+          <div class="chart" id="chart-jump"></div>
+          <p class="src" id="src-jump"></p>
+        </section>
+      </div>
+
+      <section class="section" aria-labelledby="rain-h">
+        <h2 id="rain-h">Rain by station</h2>
+        <p class="note">Rain reported in this period by National Weather Service, airport and volunteer CoCoRaHS gauges. The lake estimate uses only lowland stations near lake level that reported most days. Bench and mountain stations get extra rain from the slopes, so they're shown but not counted. Volunteer gauges report each morning for the day before.</p>
+        <ul class="legend" aria-hidden="true">
+          <li><i class="on"></i>Counted toward the lake estimate</li>
+          <li><i class="offk"></i>Not counted (higher ground or missing reports)</li>
+          <li><i class="med"></i>Middle value of counted stations</li>
+        </ul>
+        <div class="chart" id="chart-rain"></div>
+        <p class="src" id="src-rain"></p>
+      </section>
+
+      <section class="section" aria-labelledby="cum-h">
+        <h2 id="cum-h">River water above normal, running total</h2>
+        <p class="note">Acre-feet above normal since the period began, all river mouths combined. A falling line means rivers ran below normal. Only shown for periods up to two months, where "normal" means something.</p>
+        <div class="chart" id="chart-cum"></div>
+        <p class="src" id="src-cum"></p>
+      </section>
+
+      <section class="section" aria-labelledby="tbl-h">
+        <h2 id="tbl-h">Every gauge</h2>
+        <div class="tablewrap"><table id="site-table">
+          <caption id="tbl-cap"></caption>
+          <thead><tr><th scope="col">USGS site</th><th scope="col">Gauge</th><th scope="col">Role</th><th scope="col">Normal (cfs)</th><th scope="col">Peak (cfs)</th><th scope="col">Latest (cfs)</th><th scope="col">Water (acre-ft)</th><th scope="col">Above normal (acre-ft)</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <p class="src" id="src-table"></p>
+      </section>
+
+      <div id="panels-details"></div>
+
+      <section class="method" aria-label="Method">
+        <dl class="glossary">
+          <dt>cfs</dt><dd>Cubic feet per second, how fast water flows past a gauge. 1 cfs is about 7.5 gallons every second.</dd>
+          <dt>acre-ft</dt><dd>Enough water to cover one acre a foot deep: about 326,000 gallons, or half an Olympic pool.</dd>
+          <dt>Normal</dt><dd>The middle reading over the 14 days before the period starts.</dd>
+        </dl>
+        <p><b>How it's worked out.</b> USGS gauge readings and NOAA daily rain totals are pulled into a DuckDB database and added up in SQL. Gauges are found automatically: every active USGS stream gauge in the lower Bear, Weber and Jordan river basins. River water is measured at the last gauge on each river: Bear River near Corinne, Weber River near Plain City, and the Jordan at Surplus Canal and Cudahy Lane. Every other gauge drains through those, so it isn't added again. Periods up to two months use 15-minute readings averaged by hour; longer ones use USGS daily averages. Rain on the lake is the middle value of lowland stations (below 4,500 ft) spread over the lake's surface at its level then; it's skipped for periods over 20 years. Lake change compares the average of the day before the period with its last day, which smooths out some wind.</p>
+        <p><b>Left out.</b> Evaporation, groundwater, smaller creeks and drains that enter the lake directly, and canal diversions above the gauges. Recent readings are provisional and may be revised.</p>
+      </section>
+    <footer class="sources" aria-labelledby="sources-h">
+      <h2 id="sources-h">Data sources</h2>
+      <ul>
+        <li>Stream flow and lake level: <a href="https://waterdata.usgs.gov/">USGS National Water Information System</a>, instantaneous and daily values. Recent values are provisional.</li>
+        <li>Rain: <a href="https://www.rcc-acis.org/">NOAA Applied Climate Information System</a>, daily reports from NWS co-op, airport and <a href="https://www.cocorahs.org/">CoCoRaHS</a> stations.</li>
+        <li>Lake area and volume: <a href="https://doi.org/10.5066/P9DGG75W">USGS Great Salt Lake elevation-area-volume tables (2023)</a>.</li>
+        <li>Healthy range 4,198–4,205 ft: the levels where Utah's <a href="https://ffsl.utah.gov/wp-content/uploads/Elevation_Matrix_3_1_13Cropped.pdf">Great Salt Lake elevation matrix</a> (Division of Forestry, Fire and State Lands, 2013) rates most of the lake's resources as healthy. The <a href="https://wilkescenter.utah.edu/great-salt-lake/strike-team/">Great Salt Lake Strike Team</a> recommended it as the target, and the <a href="https://greatsaltlake.utah.gov/wp-content/uploads/Great-Salt-Lake-Strategic-Plan.pdf">2024 Great Salt Lake Strategic Plan</a> aims for its low end. Record low: <a href="https://www.usgs.gov/centers/ut-water/science/great-salt-lake-elevations">USGS</a>.</li>
+        <li>Satellite picture: <a href="https://planetarycomputer.microsoft.com/dataset/sentinel-2-l2a">Copernicus Sentinel-2 Level-2A via Microsoft Planetary Computer</a> (zoomed in) and <a href="https://s2maps.eu">Sentinel-2 cloudless 2024 by EOX</a>, CC BY-NC-SA 4.0 (zoomed out). Map text: <a href="https://demotiles.maplibre.org/">MapLibre demo fonts</a>; place names: <a href="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer">Esri World Boundaries and Places</a> (Esri, HERE, Garmin, OpenStreetMap contributors).</li>
+        <li>Unit conversions: 1 acre-ft = 325,851 gallons; an Olympic pool holds 2,500 m³ (about 660,000 gallons).</li>
+      </ul>
+    </footer>
+  </div>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+(() => {
+  // ---------------------------------------------------------------- helpers
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const nf0 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  const fmtInt = (v) => nf0.format(v);
+  const fmt1 = (v) => new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(v);
+  const parseDay = (s) => { const [y, m, d] = s.slice(0, 10).split('-').map(Number); return new Date(y, m - 1, d); };
+  const parseHour = (s) => new Date(s.length > 10 ? s : s + 'T00:00');
+  const pad = (n) => String(n).padStart(2, '0');
+  const isoDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const fmtDay = (d, withYear) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}) });
+  const fmtHour = (d) => d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric' });
+  const GAL_PER_AF = 325851, POOL_GAL = 660430;
+  const RIVER_COLOR = { 'Bear River': '--bear', 'Weber River': '--weber', 'Jordan River': '--jordan' };
+  const pretty = (n) => n >= 1e12 ? `${(n / 1e12).toFixed(1)} trillion` : n >= 1e9 ? `${(n / 1e9).toFixed(n >= 1e10 ? 0 : 1)} billion` : n >= 1e6 ? `${(n / 1e6).toFixed(0)} million` : fmtInt(n);
+  const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+  const b = (t) => el('b', { textContent: t });
+  const USGS = (id) => `https://waterdata.usgs.gov/monitoring-location/${id}/`;
+  const link = (text, href) => el('a', { textContent: text, href });
+  const gaugeLinks = (ids) => ids.flatMap((id, i) => [i ? ', ' : '', link(id, USGS(id))]);
+  const ACIS = () => link('NOAA ACIS', 'https://www.rcc-acis.org/');
+  const cite = (id, ...parts) => { const e = document.getElementById(id); if (e) e.replaceChildren('Source: ', ...parts); };
+  const titleCase = (s) => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\bUt\b|\bUtah\b/g, '').trim();
+  const shortName = (s) => {
+    if (s.role === 'lake') return 'Lake level, Saltair';
+    if (s.site_id === '10170500') return 'Jordan River (Surplus Canal)';
+    if (s.site_id === '10172600') return 'Jordan River (Cudahy Ln)';
+    return titleCase(s.name.replace(/,? (UT|UTAH|ID)$/i, '').replace(/ (NR|NEAR|AB|BL|ABV|AT|@) .*$/i, '')) || s.name;
+  };
+  const ratioOf = (s) => s.latest_cfs != null && s.baseline_cfs > 0 ? s.latest_cfs / s.baseline_cfs : null;
+  const timesNormal = (s) => {
+    const r = ratioOf(s);
+    if (r == null) return 'no data';
+    if (r >= 0.85 && r < 1.15) return 'normal';
+    return r < 1 ? `${Math.round(r * 100)}% of normal` : `${r.toFixed(r < 10 ? 1 : 0)}× normal`;
+  };
+  let DATA = null, HIST = null;
+
+  // ---------------------------------------------------------------- echarts
+  const charts = {};
+  function chart(id) {
+    const node = document.getElementById(id);
+    if (!charts[id]) charts[id] = echarts.init(node, null, { renderer: 'svg' });
+    return charts[id];
+  }
+  function emptyChart(id, text) {
+    chart(id).setOption({ title: { text, left: 'center', top: 'middle', textStyle: { color: css('--ink-2'), fontSize: 14, fontWeight: 400, fontFamily: 'IBM Plex Sans' } }, series: [] }, true);
+  }
+  const base = () => {
+    const ink2 = css('--ink-2'), grid = css('--grid-major');
+    return {
+      aria: { enabled: true, decal: { show: false } },
+      animation: !matchMedia('(prefers-reduced-motion: reduce)').matches,
+      textStyle: { fontFamily: 'IBM Plex Mono', fontSize: 12, color: ink2 },
+      grid: { left: 12, right: 16, top: 16, bottom: 28, containLabel: true },
+      tooltip: { trigger: 'axis', backgroundColor: css('--paper'), borderColor: css('--ink'), borderWidth: 1, borderRadius: 0,
+        textStyle: { color: css('--ink'), fontFamily: 'IBM Plex Mono', fontSize: 12 }, axisPointer: { type: 'line', lineStyle: { color: ink2 } } },
+      xAxis: { type: 'time', axisLine: { lineStyle: { color: css('--rule') } }, axisLabel: { color: ink2, hideOverlap: true }, splitLine: { show: false } },
+      yAxis: { type: 'value', axisLabel: { color: ink2 }, splitLine: { lineStyle: { color: grid } } },
+    };
+  };
+  function lineChart(id, series, opts) {
+    const live = series.filter(s => s.points.length);
+    if (!live.length) return emptyChart(id, 'No readings for this period.');
+    const win = DATA.window;
+    const o = base();
+    o.aria.label = { enabled: true, description: opts.alt };
+    o.yAxis = { ...o.yAxis, scale: opts.zero === false, axisLabel: { color: css('--ink-2'), formatter: opts.axisFmt || ((v) => fmtInt(v)) } };
+    o.tooltip.valueFormatter = (v) => v == null ? '—' : `${opts.fmt(v)}${opts.unit}`;
+    o.legend = live.length > 1 ? { top: 0, left: 0, textStyle: { color: css('--ink') }, icon: 'rect', itemHeight: 3 } : undefined;
+    if (o.legend) o.grid.top = 32;
+    o.dataZoom = opts.zoom ? [{ type: 'inside' }] : [];
+    o.series = live.map((s, i) => ({
+      name: s.name, type: 'line', showSymbol: false, sampling: 'lttb', lineStyle: { width: 2, color: s.color }, itemStyle: { color: s.color },
+      data: s.points.map(p => [p.t, p.v]),
+      markLine: s.baseline != null ? { silent: true, symbol: 'none', label: { show: false }, lineStyle: { type: 'dashed', color: s.color, width: 1.5 }, data: [{ yAxis: s.baseline }] } : undefined,
+      markArea: i === 0 ? { silent: true, itemStyle: { color: css('--grid'), opacity: .6 }, data: [[{ xAxis: parseDay(win.from) }, { xAxis: addDays(parseDay(win.to), 1) }]] } : undefined,
+    }));
+    chart(id).setOption(o, true);
+  }
+
+  function barChart(id, rows, median) {
+    const node = document.getElementById(id);
+    if (!rows.length) { node.style.height = '120px'; return emptyChart(id, 'No rain reports for this period.'); }
+    node.style.height = `${rows.length * 22 + 60}px`;
+    const o = base();
+    const counted = rows.filter(r => r.counted).length;
+    o.aria.label = { enabled: true, description: `Rain at ${rows.length} stations, from ${rows[rows.length - 1].total_in.toFixed(2)} to ${rows[0].total_in.toFixed(2)} inches. ${counted} lowland stations count toward the lake estimate${median != null ? `; their middle value is ${median.toFixed(2)} inches` : ''}. A table of every station follows.` };
+    o.tooltip = { ...o.tooltip, trigger: 'item', formatter: (p) => { const r = rows[p.dataIndex]; return `${r.station}<br>${r.total_in.toFixed(2)} in · ${r.elev_ft == null ? '' : fmtInt(r.elev_ft) + ' ft'}<br>${r.counted ? 'Counted' : 'Not counted'}`; } };
+    o.xAxis = { type: 'value', axisLabel: { color: css('--ink-2'), formatter: (v) => `${v} in` }, splitLine: { lineStyle: { color: css('--grid-major') } } };
+    o.yAxis = { type: 'category', inverse: true, data: rows.map(r => r.station), axisLabel: { color: css('--ink-2'), fontSize: 12 }, axisTick: { show: false }, axisLine: { lineStyle: { color: css('--rule') } } };
+    o.series = [{ type: 'bar', barMaxWidth: 16, label: { show: true, position: 'right', color: css('--ink'), formatter: (p) => p.value.toFixed(2) },
+      data: rows.map(r => ({ value: r.total_in, itemStyle: r.counted ? { color: css('--pen') }
+        : { color: 'transparent', borderColor: css('--off'), borderWidth: 1.5, decal: { symbol: 'rect', symbolSize: 1, dashArrayX: [1, 0], dashArrayY: [2, 3], rotation: Math.PI / 4, color: css('--off') } } })),
+      markLine: median != null ? { silent: true, symbol: 'none', label: { show: false }, lineStyle: { type: 'dashed', color: css('--ink'), width: 1.5 }, data: [{ xAxis: median }] } : undefined }];
+    chart(id).setOption(o, true);
+    // a real table for screen readers
+    let tbl = node.parentElement.querySelector('table.sr-only');
+    if (!tbl) { tbl = el('table', { className: 'sr-only' }); node.after(tbl); }
+    tbl.replaceChildren(el('caption', { textContent: 'Rain by station' }),
+      el('thead', {}, el('tr', {}, ...['Station', 'Rain (in)', 'Elevation (ft)', 'Counted'].map(t => el('th', { scope: 'col', textContent: t })))),
+      el('tbody', {}, ...rows.map(r => el('tr', {}, ...[r.station, r.total_in.toFixed(2), r.elev_ft == null ? '' : fmtInt(r.elev_ft), r.counted ? 'Yes' : 'No'].map(t => el('td', { textContent: t }))))));
+  }
+
+  // ---------------------------------------------------------------- history charts
+  let histZoom = null;
+  function drawHistory() {
+    if (!HIST) return;
+    const pts = HIST.lake_weekly.map(r => [parseDay(r.wk), r.elev_ft]);
+    const [lo, hi] = HIST.config.healthy_ft;
+    const o = base();
+    o.aria.label = { enabled: true, description: `Great Salt Lake level at Saltair since 1847, weekly averages from ${fmt1(Math.min(...pts.map(p => p[1])))} to ${fmt1(Math.max(...pts.map(p => p[1])))} feet. The healthy range is ${lo} to ${hi} feet; the record low is ${HIST.config.record_low_ft} feet.` };
+    o.grid.bottom = 64;
+    o.yAxis = { ...o.yAxis, scale: true, axisLabel: { color: css('--ink-2'), formatter: (v) => fmtInt(v) } };
+    o.tooltip.valueFormatter = (v) => `${fmt1(v)} ft`;
+    o.dataZoom = [{ type: 'inside' }, { type: 'slider', height: 28, bottom: 8, borderColor: css('--rule'), textStyle: { color: css('--ink-2') },
+      fillerColor: 'rgba(127,127,127,.18)', dataBackground: { lineStyle: { color: css('--ink-2') }, areaStyle: { color: css('--grid') } },
+      labelFormatter: (v) => new Date(v).getFullYear() }];
+    o.series = [{ name: 'Lake level', type: 'line', showSymbol: false, sampling: 'lttb', connectNulls: false, lineStyle: { width: 1.5, color: css('--pen') }, itemStyle: { color: css('--pen') }, data: pts,
+      markArea: { silent: true, itemStyle: { color: css('--healthy-fill'), opacity: .8 }, label: { show: true, position: 'insideTopLeft', color: css('--healthy'), formatter: 'Healthy' }, data: [[{ yAxis: lo }, { yAxis: hi }]] },
+      markLine: { silent: true, symbol: 'none', lineStyle: { type: 'dashed', color: css('--ink-2') }, label: { color: css('--ink-2'), formatter: 'Record low', position: 'insideEndBottom' }, data: [{ yAxis: HIST.config.record_low_ft }] } }];
+    const c = chart('chart-history');
+    c.setOption(o, true);
+    c.off('datazoom');
+    c.on('datazoom', () => {
+      const z = c.getOption().dataZoom[0];
+      const span = pts[pts.length - 1][0] - pts[0][0];
+      const a = new Date(+pts[0][0] + span * z.start / 100), e = new Date(+pts[0][0] + span * z.end / 100);
+      histZoom = [a < new Date(1847, 9, 18) ? new Date(1847, 9, 18) : a, e > new Date() ? new Date() : e];
+      document.getElementById('hist-range').textContent = `Selected: ${fmtDay(histZoom[0], true)} – ${fmtDay(histZoom[1], true)}`;
+    });
+    const rid = HIST.lake_weekly.length ? '10010000' : '';
+    cite('src-history', 'USGS daily values, gauge ', link(rid, USGS(rid)), '; healthy range from the ', link('Utah FFSL elevation matrix', 'https://ffsl.utah.gov/wp-content/uploads/Elevation_Matrix_3_1_13Cropped.pdf'), '.');
+
+    const years = [...new Set(HIST.annual_inflow.map(r => r.water_year))].sort((a, c2) => a - c2);
+    const rivers = ['Bear River', 'Weber River', 'Jordan River'];
+    const a = base();
+    a.aria.label = { enabled: true, description: `River water reaching the Great Salt Lake each water year from ${years[0]} to ${years[years.length - 1]}, by river, in acre-feet.` };
+    a.tooltip = { ...a.tooltip, axisPointer: { type: 'shadow' }, valueFormatter: (v) => v == null ? '—' : `${fmtInt(v)} acre-ft` };
+    a.legend = { top: 0, left: 0, textStyle: { color: css('--ink') }, icon: 'rect' };
+    a.grid.top = 32; a.grid.bottom = 64;
+    a.xAxis = { type: 'category', data: years, axisLabel: { color: css('--ink-2') }, axisLine: { lineStyle: { color: css('--rule') } } };
+    a.yAxis = { ...a.yAxis, axisLabel: { color: css('--ink-2'), formatter: (v) => v >= 1e6 ? `${v / 1e6}M` : v >= 1e3 ? `${v / 1e3}k` : v } };
+    a.dataZoom = [{ type: 'inside', startValue: Math.max(0, years.length - 40) }, { type: 'slider', height: 28, bottom: 8, borderColor: css('--rule'), textStyle: { color: css('--ink-2') }, startValue: Math.max(0, years.length - 40) }];
+    a.series = rivers.map((rv, i) => ({ name: rv, type: 'bar', stack: 'in', itemStyle: { color: css(RIVER_COLOR[rv]), decal: { symbol: ['rect', 'circle', 'triangle'][i], symbolSize: .6, color: 'rgba(0,0,0,.18)' } },
+      data: years.map(y => HIST.annual_inflow.find(r => r.water_year === y && r.river === rv)?.acre_ft ?? null) }));
+    a.aria.decal = { show: true };
+    chart('chart-annual').setOption(a, true);
+    cite('src-annual', 'USGS daily values, gauges ', ...gaugeLinks(['10126000', '10141000', '10170500', '10172600']), '.');
+    renderPanels('history');
+  }
+  document.getElementById('hist-apply').addEventListener('click', () => {
+    if (!histZoom) return;
+    fromIn.value = isoDay(histZoom[0]); toIn.value = isoDay(histZoom[1]); syncPreset(); form.requestSubmit();
+    showTab(document.getElementById('tab-glance'), true);
+  });
+
+  // ---------------------------------------------------------------- map
+  let MAP = null, POPUP = null;
+  function drawMap(img, sites, bySite, lake, priority) {
+    const holder = document.getElementById('map');
+    const imgNote = document.getElementById('imagery-note');
+    if (img) imgNote.replaceChildren('Satellite picture: ', link('Copernicus Sentinel-2', 'https://planetarycomputer.microsoft.com/dataset/sentinel-2-l2a'), `, clearest passes from ${fmtDay(parseDay(img.oldest))} to ${fmtDay(parseDay(img.newest))}, shown when zoomed in; zoomed out shows EOX's 2024 cloud-free mosaic. Both show recent shorelines, not the ones for older periods.`);
+    else imgNote.textContent = 'Satellite picture unavailable right now.';
+    const features = sites.map(gg => {
+      const s = bySite[gg.site_id], isLake = gg.role === 'lake', live = isLake ? !!lake : s && s.readings > 0;
+      const name = shortName(gg);
+      const value = isLake ? (lake ? `${fmt1(lake.latest_ft)} ft` : 'no reading') : live ? timesNormal(s) : 'no data';
+      return { type: 'Feature', geometry: { type: 'Point', coordinates: [gg.lon, gg.lat] }, properties: {
+        site_id: gg.site_id, name, value, label: `${name} · ${value}`, kind: isLake ? 'lake' : live ? 'live' : 'off',
+        rank: priority.get(gg.site_id) ?? 100,
+        detail: isLake ? `USGS ${gg.site_id}` : live ? `USGS ${gg.site_id}<br>Now ${fmtInt(s.latest_cfs)} cfs, normal ${fmtInt(s.baseline_cfs)} cfs` : `USGS ${gg.site_id}<br>No readings this period` } };
+    });
+    const list = document.getElementById('map-list');
+    list.replaceChildren(...features.sort((a, c) => a.properties.rank - c.properties.rank).map(f => el('li', { textContent: `${f.properties.name}: ${f.properties.value}` })));
+    if (!window.maplibregl || !sites.length) { holder.hidden = true; return; }
+    const data = { type: 'FeatureCollection', features };
+    if (!MAP) {
+      const padDeg = 0.05;
+      const core = sites.filter(s => s.role !== 'upstream');
+      const bounds = [[Math.min(...core.map(s => s.lon)) - padDeg, Math.min(...core.map(s => s.lat)) - padDeg], [Math.max(...core.map(s => s.lon)) + padDeg, Math.max(...core.map(s => s.lat)) + padDeg]];
+      MAP = new maplibregl.Map({
+        container: holder, bounds, fitBoundsOptions: { padding: 30 }, maxZoom: 14, minZoom: 6, dragRotate: false, pitchWithRotate: false,
+        cooperativeGestures: true, attributionControl: { compact: false },
+        style: { version: 8, glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf', sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': css('--grid') } }] },
+      });
+      MAP.touchZoomRotate.disableRotation();
+      MAP.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+      MAP.getCanvas().setAttribute('aria-label', 'Satellite map of the gauges. The same gauges are listed for screen readers after the map.');
+      MAP.on('click', 'gauges', (e) => {
+        const p = e.features[0].properties;
+        POPUP?.remove();
+        POPUP = new maplibregl.Popup({ closeButton: true, offset: 10 }).setLngLat(e.features[0].geometry.coordinates).setHTML(`<b>${p.name}</b><br>${p.value}<br>${p.detail}`).addTo(MAP);
+      });
+      MAP.on('mouseenter', 'gauges', () => { MAP.getCanvas().style.cursor = 'pointer'; });
+      MAP.on('mouseleave', 'gauges', () => { MAP.getCanvas().style.cursor = ''; });
+    }
+    const apply = () => {
+      if (!MAP.getSource('s2-year')) {
+        MAP.addSource('s2-year', { type: 'raster', tileSize: 256, maxzoom: 14,
+          tiles: ['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg'],
+          attribution: 'Zoomed-out picture: <a href="https://s2maps.eu">Sentinel-2 cloudless 2024 by EOX</a> (Contains modified Copernicus Sentinel data 2024), CC BY-NC-SA 4.0' });
+        MAP.addLayer({ id: 's2-year', type: 'raster', source: 's2-year' });
+      }
+      if (img && MAP.__tiles !== img.tiles) {
+        ['s2'].forEach(id => { if (MAP.getLayer(id)) MAP.removeLayer(id); if (MAP.getSource(id)) MAP.removeSource(id); });
+        MAP.addSource('s2', { type: 'raster', tiles: [img.tiles], tileSize: 256, minzoom: 9, maxzoom: 14, attribution: `Contains modified Copernicus Sentinel data ${img.newest.slice(0, 4)}, via Microsoft Planetary Computer` });
+        MAP.addLayer({ id: 's2', type: 'raster', source: 's2' }, MAP.getLayer('places') ? 'places' : undefined);
+        MAP.__tiles = img.tiles;
+      }
+      if (!MAP.getSource('places')) {
+        MAP.addSource('places', { type: 'raster', tileSize: 256, tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],
+          attribution: 'Place names: Esri, HERE, Garmin, © OpenStreetMap contributors, and the GIS user community' });
+        MAP.addLayer({ id: 'places', type: 'raster', source: 'places', paint: { 'raster-opacity': .85 } });
+      }
+      if (MAP.getSource('gauges')) { MAP.getSource('gauges').setData(data); return; }
+      MAP.addSource('gauges', { type: 'geojson', data });
+      MAP.addLayer({ id: 'gauges', type: 'circle', source: 'gauges', paint: {
+        'circle-radius': ['case', ['==', ['get', 'kind'], 'lake'], 8, ['<', ['get', 'rank'], 100], 6.5, 5],
+        'circle-color': ['match', ['get', 'kind'], 'lake', css('--pen'), 'live', '#11181c', '#f4f6f3'],
+        'circle-stroke-color': ['match', ['get', 'kind'], 'off', '#11181c', '#f4f6f3'], 'circle-stroke-width': 2 } });
+      // labels collide: lower rank wins; the rest hide until you zoom in
+      MAP.addLayer({ id: 'gauge-labels', type: 'symbol', source: 'gauges', layout: {
+        // zoomed out: lake, river mouths and the 3 upstream gauges furthest above normal; zoom in for the rest
+        'text-field': ['step', ['zoom'], ['case', ['<', ['get', 'rank'], 13], ['get', 'label'], ''], 10, ['get', 'label']], 'text-font': ['Noto Sans Regular'], 'text-size': ['case', ['<', ['get', 'rank'], 10], 13, 12],
+        'symbol-sort-key': ['get', 'rank'], 'text-variable-anchor': ['left', 'right', 'top', 'bottom'], 'text-radial-offset': 0.9,
+        'text-justify': 'auto', 'text-max-width': 14, 'text-optional': true, 'text-padding': 3 },
+        paint: { 'text-color': '#ffffff', 'text-halo-color': '#0c100f', 'text-halo-width': 2, 'text-halo-blur': .5 } });
+    };
+    MAP.loaded() ? apply() : MAP.once('load', apply);
+    drawWetlands();
+  }
+
+  // optional layer: UGS wetland plant-survey sites (from the ugs_wetlands source)
+  function drawWetlands() {
+    const sites = DATA?.sources?.ugs_wetlands?.sites;
+    const on = document.getElementById('show-wetlands').checked;
+    if (!MAP || !Array.isArray(sites)) return;
+    const go = () => {
+      const data = { type: 'FeatureCollection', features: sites.map(s => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
+        properties: { ref: s.cond === 'reference' ? 1 : 0, label: `UGS wetland site ${s.id}: ${s.cond}${s.type ? ', ' + s.type : ''}${s.year ? ', surveyed ' + s.year : ''}${s.native_pct != null ? `, ${Math.round(s.native_pct)}% native plant cover` : ''}` } })) };
+      if (!MAP.getSource('wetlands')) {
+        MAP.addSource('wetlands', { type: 'geojson', data });
+        MAP.addLayer({ id: 'wetlands', type: 'circle', source: 'wetlands', paint: {
+          'circle-radius': 4, 'circle-color': ['case', ['==', ['get', 'ref'], 1], css('--healthy'), 'rgba(0,0,0,0)'],
+          'circle-stroke-color': css('--healthy'), 'circle-stroke-width': 1.5 } }, MAP.getLayer('gauges') ? 'gauges' : undefined);
+        MAP.on('click', 'wetlands', (e) => { POPUP?.remove(); POPUP = new maplibregl.Popup({ offset: 8 }).setLngLat(e.features[0].geometry.coordinates).setText(e.features[0].properties.label).addTo(MAP); });
+      } else MAP.getSource('wetlands').setData(data);
+      MAP.setLayoutProperty('wetlands', 'visibility', on ? 'visible' : 'none');
+    };
+    MAP.loaded() ? go() : MAP.once('load', go);
+  }
+  document.getElementById('show-wetlands').addEventListener('change', drawWetlands);
+
+  // ---------------------------------------------------------------- water ledger
+  function renderLedger(D, { rainAf, riverAf, rain, size, lake, wt }) {
+    const S = D.sources || {};
+    const evap = S.evaporation?.available ? S.evaporation : null;
+    const div = S.diversions?.total && !S.diversions.error ? S.diversions.total : null;
+    const res = S.reservoirs?.total && !S.reservoirs.error ? S.reservoirs.total : null;
+    const area = size?.area_acre;
+    const toIn = (af) => area ? af / area * 12 : null;
+    const inAf = rainAf + riverAf, outAf = evap?.evap_af ?? null;
+    const netAf = outAf == null ? null : inAf - outAf;
+    const af = (v) => v == null ? '—' : `${v < 0 ? '−' : '+'}${fmtInt(Math.abs(v))}`;
+    const inch = (v) => v == null ? '' : `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(2)} in`;
+    const max = Math.max(inAf, outAf || 0, 1);
+    const bar = (v) => { const w = el('div', { className: 'lbar' }); w.setAttribute('aria-hidden', 'true'); if (v) { const s = el('span', { className: v > 0 ? 'in' : 'out' }); s.style.width = `${Math.min(50, Math.abs(v) / max * 50)}%`; w.append(s); } return el('td', { className: 'barcell' }, w); };
+    const row = (label, note, v, cls = '') => el('tr', { className: cls }, el('th', { scope: 'row' }, label, ...(note ? [el('small', { textContent: note })] : [])), bar(v), el('td', { className: 'num', textContent: af(v) }), el('td', { className: 'num', textContent: inch(v == null ? null : toIn(v)) }));
+    const group = (t) => el('tr', { className: 'group' }, el('th', { scope: 'rowgroup', colSpan: 4, textContent: t }));
+    const rows = [
+      group('Into the lake'),
+      row('Rain on the lake', rain ? `middle of ${rain.stations} lowland gauges` : 'not available for this period', rain ? rainAf : null),
+      row('Rivers', 'Bear, Weber and Jordan, at their last gauges', riverAf),
+      group('Out of the lake'),
+      row('Evaporation (estimate)', evap ? `likely ${fmtInt(evap.low_af)}–${fmtInt(evap.high_af)} acre-ft` : 'no estimate for this period', outAf == null ? null : -outAf),
+      row('Net change', lake?.change_in != null ? `the lake gauge measured ${lake.change_in > 0 ? '+' : ''}${lake.change_in.toFixed(1)} in, wind included` : 'in minus out', netAf, 'net'),
+      group('Kept upstream, never reached the lake'),
+      row('Taken by canals', div ? `at least; ${div.reporting} of ${div.expected} canals reported` : 'not available for this period', div ? -div.af : null, 'sub'),
+      row('Held back in reservoirs', res ? `${res.pct_full}% full; ${res.change_af >= 0 ? `gained ${fmtInt(res.change_af)}` : `released ${fmtInt(-res.change_af)}`} acre-ft` : 'not available for this period', res ? -res.change_af : null, 'sub'),
+    ];
+    const tbl = el('table', {}, el('caption', { textContent: `Acre-feet for ${wt.when}. Lake depth spreads each amount over the lake's surface; minus means water that left or never arrived.` }),
+      el('thead', {}, el('tr', {}, el('th', { scope: 'col', textContent: '' }), el('th', { scope: 'col' }, el('span', { className: 'sr-only', textContent: 'Bar' })), el('th', { scope: 'col', textContent: 'Acre-ft' }), el('th', { scope: 'col', textContent: 'Lake depth' }))),
+      el('tbody', {}, ...rows));
+    document.getElementById('ledger').replaceChildren(el('div', { className: 'tablewrap' }, tbl));
+    const lead = document.getElementById('ledger-lead');
+    if (netAf != null) lead.replaceChildren(netAf >= 0 ? 'More water came in than evaporated: about ' : 'More water evaporated than came in: about ', b(`${pretty(Math.abs(netAf) * GAL_PER_AF)} gallons`), ` ${netAf >= 0 ? 'gained' : 'lost'}, or ${Math.abs(toIn(netAf) ?? 0).toFixed(1)} in of lake depth.`, ...(div ? [' Upstream, canals took at least another ', b(`${pretty(div.af * GAL_PER_AF)} gallons`), '.'] : []));
+    else lead.textContent = 'Inflow for this period; there is no evaporation estimate to set against it.';
+    cite('src-ledger', 'rain from ', ACIS(), '; rivers from USGS gauges; evaporation estimated from ', link('gridMET', 'https://www.climatologylab.org/gridmet.html'), ' reference ET × 0.884 (', link('Mohammed & Tarboton 2012', 'https://doi.org/10.1029/2012WR011908'), '); canals from ', link('Utah Division of Water Rights', 'https://waterrights.utah.gov/'), '; reservoirs from ', link('NRCS AWDB', 'https://wcc.sc.egov.usda.gov/awdbRestApi/swagger-ui/index.html'), ' and Water Rights; lake area from ', link('USGS', 'https://doi.org/10.5066/P9DGG75W'), '. Not counted: groundwater, ungauged creeks (about 7% of inflow per the state water budget).');
+  }
+
+  // ---------------------------------------------------------------- page
+  function windowText(win) {
+    const f = parseDay(win.from), t = parseDay(win.to), yrs = f.getFullYear() !== t.getFullYear() || f.getFullYear() !== new Date().getFullYear();
+    if (win.is_default) return { lead: `In the last ${win.days} days`, when: `Last ${win.days} days, through ${fmtDay(t)}` };
+    if (win.days >= 360) {
+      const a = f.getFullYear(), c = t.getFullYear();
+      return { lead: a === c ? `In ${a}` : `From ${fmtDay(f, true)} to ${fmtDay(t, true)}`, when: `${fmtDay(f, true)} – ${fmtDay(t, true)}` };
+    }
+    return win.from === win.to ? { lead: `On ${fmtDay(f, yrs)}`, when: fmtDay(f, yrs) } : { lead: `From ${fmtDay(f, yrs)} to ${fmtDay(t, yrs)}`, when: `${fmtDay(f, yrs)} – ${fmtDay(t, yrs)}` };
+  }
+
+  function render() {
+    const D = DATA; if (!D) return;
+    const bySite = Object.fromEntries(D.by_site.map(s => [s.site_id, s]));
+    const lake = D.lake_change[0]?.end_ft != null ? D.lake_change[0] : null;
+    const size = D.lake_size[0], cfg = D.config, win = D.window, inflow = D.inflow[0];
+    const daily = win.resolution === 'daily';
+    const rain = D.rain_lake[0]?.rain_in != null ? D.rain_lake[0] : null;
+    const rainIn = rain?.rain_in ?? 0, rainAf = rain?.rain_af ?? 0;
+    const riverAf = Math.max(0, inflow.total_af), excessAf = inflow.excess_af;
+    const riverIn = size ? riverAf / size.area_acre * 12 : 0;
+    const level = lake?.latest_ft ?? size?.level_ft;
+    const wt = windowText(win);
+    const terminal = D.by_site.filter(s => s.role === 'terminal');
+    const termIds = terminal.map(s => s.site_id);
+    const upstream = D.by_site.filter(s => s.role === 'upstream' && s.readings > 0 && ratioOf(s) != null).sort((a, c) => ratioOf(c) - ratioOf(a));
+    const lakeId = D.sites.find(s => s.role === 'lake')?.site_id || '10010000';
+    const gallons = (rainAf + riverAf) * GAL_PER_AF;
+
+    // headline: inflow for short periods; for long ones the measured change, since evaporation matters more than inflow
+    document.getElementById('when').textContent = wt.when;
+    const h = document.getElementById('answer-h'), p = document.getElementById('answer-p');
+    const num = (t) => el('span', { className: 'num', textContent: t });
+    const changeWords = (c) => { const ft = Math.abs(c) / 12; return Math.abs(c) >= 24 ? `${fmt1(ft)} feet` : `${Math.abs(c).toFixed(1)} inches`; };
+    if (win.days <= 31 && rainIn >= 0.1) {
+      h.replaceChildren(`${wt.lead}, rain and rivers added about `, num(`${(rainIn + riverIn).toFixed(1)} inches`), ' to the Great Salt Lake.');
+      const ev = D.sources?.evaporation?.available ? D.sources.evaporation : null;
+      if (ev) h.append(' Evaporation took back about ', num(`${ev.evap_in.toFixed(1)} inches`), '.');
+      p.replaceChildren('That is about ', b(`${pretty(gallons)} gallons`), ', enough to fill ', b(`${fmtInt(Math.round(gallons / POOL_GAL / 1000) * 1000)} Olympic pools`), '. ');
+    } else if (lake?.change_in != null) {
+      const c = lake.change_in, steady = Math.abs(c) < 0.5;
+      h.replaceChildren(`${wt.lead}, the Great Salt Lake ${steady ? 'held about steady' : c > 0 ? 'rose' : 'fell'}`, ...(steady ? ['.'] : [' about ', num(changeWords(c)), '.']));
+      p.replaceChildren(rain ? `Rain on the lake (${rainIn.toFixed(1)} in) and rivers brought in about ` : 'Rivers brought in about ', b(`${pretty(gallons)} gallons`), `, while evaporation takes water out${c < 0 ? ', and it took out more' : ''}. `);
+    } else {
+      h.replaceChildren(`${wt.lead}, there aren't enough lake readings to say how the level changed.`);
+      p.replaceChildren();
+    }
+    if (size && level != null && level < cfg.healthy_ft[0]) p.append(win.is_default ? 'The lake is still about ' : 'At the end of this period the lake was about ', b(`${(cfg.healthy_ft[0] - level).toFixed(0)} feet`), ' below its healthy level.');
+    const conv = ' 1 acre-ft = 325,851 gallons; an Olympic pool holds 2,500 m³ (about 660,000 gallons).';
+    cite('src-answer', ...(rain ? ['rain from ', ACIS(), '; '] : []), 'river flow from USGS gauges ', ...gaugeLinks(termIds), '; lake level from USGS gauge ', link(lakeId, USGS(lakeId)), '; lake area and volume from ', link('USGS tables', 'https://doi.org/10.5066/P9DGG75W'), '.' + conv);
+
+    // the ledger: what came in, what went out, and what was kept upstream
+    renderLedger(D, { rainAf, riverAf, rain, size, lake, wt });
+
+    // where the water came from
+    const parts = [...(rainAf > 0 ? [{ name: 'Rain on the lake', af: rainAf, color: css('--rain') }] : []),
+      ...D.by_river.filter(r => r.total_af > 0).map(r => ({ name: r.river, af: r.total_af, color: css(RIVER_COLOR[r.river] || '--off') }))];
+    const total = parts.reduce((a, c) => a + c.af, 0);
+    const split = document.getElementById('split');
+    const pct = (v) => new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 0 }).format(v);
+    if (!total) split.replaceChildren(el('p', { className: 'empty', textContent: 'No rain or river readings for this period.' }));
+    else split.replaceChildren(
+      el('div', { className: 'split', role: 'img', ariaLabel: parts.map(x => `${x.name} ${pct(x.af / total)}`).join(', ') }, ...parts.map(x => { const s = el('span'); s.style.flex = `${x.af} 0 0`; s.style.background = x.color; return s; })),
+      el('ul', { className: 'split-key' }, ...parts.map(x => { const i = el('i'); i.style.background = x.color; return el('li', {}, i, el('span', { textContent: x.name }), el('span', { className: 'v', textContent: `${pct(x.af / total)} · ${pretty(x.af * GAL_PER_AF)} gal` })); })));
+    const src = document.getElementById('source-lead');
+    const top = parts.slice().sort((a, c) => c.af - a.af)[0];
+    src.replaceChildren(!total ? 'No readings for this period.' : top.name === 'Rain on the lake' ? 'Most of it fell straight onto the lake as rain. The Bear River is usually the biggest river.' : `The ${top.name} brought the most.${rain ? '' : win.days > cfg.rain_max_days ? ' Rain isn\'t counted for periods over 20 years.' : ' Little rain fell on the lake.'}`);
+    cite('src-source', ...(rain ? [ACIS(), ' rain reports; '] : []), 'USGS gauges ', ...gaugeLinks(termIds), '; lake area from ', link('USGS tables', 'https://doi.org/10.5066/P9DGG75W'), '.');
+
+    // healthy ruler
+    const hl = document.getElementById('health-lead'), ruler = document.getElementById('ruler');
+    if (level != null) {
+      hl.replaceChildren('Now ', b(`${fmt1(level)} ft`), ` above sea level. Healthy starts at ${fmtInt(cfg.healthy_ft[0])} ft`);
+      if (size?.to_healthy_af > 0) hl.append(', about ', b(`${pretty(size.to_healthy_af * GAL_PER_AF)} gallons`), ' away.'); else hl.append('.');
+      const [lo, hi] = cfg.healthy_ft, low = cfg.record_low_ft;
+      const a = Math.floor(Math.min(low, level) - 1), z = Math.ceil(Math.max(hi, level) + 1);
+      const x = (v) => `${(v - a) / (z - a) * 100}%`;
+      const at = (cls, v, extra = {}) => { const e = el('span', { className: cls, ...extra }); e.style.left = x(v); return e; };
+      const band = at('band', lo); band.style.width = `${(hi - lo) / (z - a) * 100}%`;
+      const ticks = []; for (let v = Math.ceil(a / 2) * 2; v <= z; v += 2) ticks.push(at('tick', v), at('tick-l', v, { textContent: fmtInt(v) }));
+      ruler.replaceChildren(el('span', { className: 'axis' }), band, at('band-l', (lo + hi) / 2, { textContent: 'Healthy' }), ...ticks,
+        at('low', low), at('low-l', low, { textContent: 'Record low' }), at('now', level), at('now-l', level, { textContent: `Now ${fmt1(level)} ft` }));
+      ruler.setAttribute('aria-label', `The lake is at ${fmt1(level)} feet. The healthy range is ${lo} to ${hi} feet. The record low is ${low} feet.`);
+    } else { hl.textContent = 'No lake level readings.'; ruler.replaceChildren(); }
+    cite('src-health', 'USGS gauge ', link(lakeId, USGS(lakeId)), '; healthy range from the ', link('Utah FFSL elevation matrix', 'https://ffsl.utah.gov/wp-content/uploads/Elevation_Matrix_3_1_13Cropped.pdf'), ' and ', link('Strike Team', 'https://wilkescenter.utah.edu/great-salt-lake/strike-team/'), '; gallons to healthy from ', link('USGS volume tables', 'https://doi.org/10.5066/P9DGG75W'), '; record low from ', link('USGS', 'https://www.usgs.gov/centers/ut-water/science/great-salt-lake-elevations'), '.');
+
+    // rivers and creeks
+    document.getElementById('flow-lead').textContent = daily ? 'Water each river carried to the lake in this period.' : 'Latest flow compared with normal for the two weeks before this period.';
+    const fl = document.getElementById('flowlist'); fl.replaceChildren();
+    const rows = daily ? terminal.map(s => [s, 'River mouth']) : [...terminal.map(s => [s, 'River mouth']), ...upstream.slice(0, 2).map(s => [s, 'Upstream, running highest'])];
+    rows.forEach(([s, sub]) => {
+      const r = ratioOf(s);
+      const val = daily ? (s.window_af ? `${pretty(s.window_af * GAL_PER_AF)} gal` : 'no data') : s.readings ? timesNormal(s) : 'no data';
+      fl.append(el('li', {}, el('span', {}, shortName(s), el('small', { textContent: sub })), el('span', { className: 'x' + (daily || r == null || r < 1.5 ? ' calm' : ''), textContent: val })));
+    });
+    if (!fl.children.length) fl.append(el('li', { textContent: 'No stream readings for this period.' }));
+    cite('src-flow', 'USGS gauges ', ...gaugeLinks(rows.map(([s]) => s.site_id)), '.');
+
+    document.getElementById('asof').textContent = D.refreshed_at ? `Updated ${D.refreshed_at}` : '';
+
+    // lake gauge chart
+    if (D.lake_series.length) lineChart('chart-lake-level',
+      [{ name: 'Saltair', color: css('--pen'), baseline: D.lake_change[0]?.start_ft, points: D.lake_series.map(r => ({ t: parseHour(r.hour), v: r.elev_ft })) }],
+      { fmt: (v) => fmt1(v), axisFmt: (v) => fmt1(v), unit: ' ft', zero: false, zoom: true,
+        alt: `Lake level at Saltair, between ${fmt1(Math.min(...D.lake_series.map(r => r.elev_ft)))} and ${fmt1(Math.max(...D.lake_series.map(r => r.elev_ft)))} feet.${lake ? ` It was ${lake.start_ft?.toFixed(2)} feet before the period and ${lake.end_ft.toFixed(2)} feet at its end.` : ''}` });
+    else emptyChart('chart-lake-level', 'No lake level readings for this period.');
+    cite('src-level', 'USGS gauge ', link(`${lakeId}, Great Salt Lake at Saltair Boat Harbor`, USGS(lakeId)), daily ? ', daily values.' : ', 15-minute readings averaged by hour.');
+
+    // map: lake first, then river mouths, then upstream by how far above normal
+    const priority = new Map([[lakeId, 0], ...terminal.map((s, i) => [s.site_id, 1 + i]), ...upstream.map((s, i) => [s.site_id, 10 + i])]);
+    drawMap(D.imagery, D.sites, bySite, lake ?? (level != null ? { latest_ft: level } : null), priority);
+    cite('src-map', 'gauge list and locations from the ', link('USGS NWIS site service', 'https://waterservices.usgs.gov/nwis/site/?format=rdb&huc=16010204,16020102,16020204&siteType=ST&hasDataTypeCd=iv&siteStatus=active'), ' (lower Bear, Weber and Jordan basins); picture from Copernicus Sentinel-2; place names from Esri.');
+
+    // details: text always, charts only while open
+    const set = (id, v) => { document.getElementById(id).textContent = v; };
+    set('t-change', lake?.change_in == null ? '—' : (lake.change_in > 0 ? '+' : '') + lake.change_in.toFixed(1));
+    set('t-level', level == null ? '—' : level.toFixed(2));
+    set('t-rain', rain ? rainIn.toFixed(2) : '—'); set('t-stations', rain ? rain.stations : '0');
+    set('t-river', fmtInt(riverAf)); set('t-excess', (excessAf >= 0 ? '+' : '') + fmtInt(excessAf));
+    document.getElementById('t-excess-sub').hidden = daily;
+    set('t-area', size ? fmtInt(size.area_acre) : '—'); set('t-area-lvl', size ? fmt1(size.level_ft) : '—');
+    cite('src-tiles', 'lake change from USGS gauge ', link(lakeId, USGS(lakeId)), ...(rain ? ['; rain from ', ACIS()] : []), '; river water from USGS gauges ', ...gaugeLinks(termIds), '; lake surface from ', link('USGS tables', 'https://doi.org/10.5066/P9DGG75W'), '.');
+    document.getElementById('tbl-cap').textContent = `Normal is the middle reading over the ${cfg.baseline_days} days before ${fmtDay(parseDay(win.from), true)}. Water totals cover ${wt.when}.${daily ? ' Long periods use daily values, which only the river mouths have here.' : ''}`;
+    const tb = document.querySelector('#site-table tbody'); tb.replaceChildren();
+    const f0 = (v) => v == null ? '—' : fmtInt(v);
+    for (const s of D.by_site) {
+      tb.append(el('tr', {}, el('td', {}, link(s.site_id, USGS(s.site_id))), el('td', { textContent: shortName(s) }), el('td', { textContent: s.role === 'terminal' ? 'River mouth' : 'Upstream' }),
+        ...[f0(s.baseline_cfs), f0(s.peak_cfs), f0(s.latest_cfs), f0(s.window_af), s.excess_af == null || daily ? '—' : (s.excess_af >= 0 ? '+' : '') + fmtInt(s.excess_af)].map(t => el('td', { textContent: t }))));
+    }
+    cite('src-table', link('USGS NWIS', 'https://waterdata.usgs.gov/'), daily ? ' daily values' : ' instantaneous values', '; each site number links to its USGS page.');
+    cite('src-rivers', 'USGS gauges ', ...gaugeLinks(termIds), '.');
+    cite('src-cum', 'USGS gauges ', ...gaugeLinks(termIds), '.');
+    cite('src-rain', ACIS(), ', MultiStnData daily precipitation.');
+    if (upstream[0]) cite('src-jump', 'USGS gauge ', link(upstream[0].site_id, USGS(upstream[0].site_id)), '.');
+    renderPanels('glance');
+    if (!document.getElementById('panel-ag').hidden) renderPanels('ag');
+    if (document.getElementById('panel-details').hidden) return;
+    renderPanels('details');
+
+    const flow = id => { const rs = D.flow_series.filter(r => r.site_id === id); return { baseline: daily ? null : rs[0]?.baseline_cfs, points: rs.map(r => ({ t: parseHour(r.hour), v: r.cfs })) }; };
+    const termColor = { '10126000': css('--bear'), '10141000': css('--weber'), '10170500': css('--jordan'), '10172600': css('--ink') };
+    lineChart('chart-rivers', terminal.map(s => ({ name: shortName(s), color: termColor[s.site_id] || css('--off'), ...flow(s.site_id) })),
+      { fmt: fmtInt, unit: ' cfs', zoom: true, alt: `Flow at each river mouth. ${terminal.filter(s => s.readings).map(s => `${shortName(s)} peaked at ${fmtInt(s.peak_cfs)} cfs`).join('; ')}.` });
+    const jump = upstream[0];
+    if (jump && !daily) {
+      document.getElementById('jump-note').textContent = `${shortName(jump)} (USGS ${jump.site_id}) is running furthest above its normal flow: ${timesNormal(jump)}.`;
+      lineChart('chart-jump', [{ name: shortName(jump), color: css('--pen'), ...flow(jump.site_id) }],
+        { fmt: fmtInt, unit: ' cfs', zoom: true, alt: `${shortName(jump)} flow. Normal ${fmtInt(jump.baseline_cfs)} cfs, peak ${fmtInt(jump.peak_cfs)} cfs, now ${fmtInt(jump.latest_cfs)} cfs.` });
+    } else { document.getElementById('jump-note').textContent = 'Upstream gauges are only compared for periods up to two months.'; emptyChart('chart-jump', 'Not shown for long periods.'); }
+    if (daily) emptyChart('chart-cum', 'Not shown for long periods.');
+    else lineChart('chart-cum', [{ name: 'Total', color: css('--pen'), points: D.inflow_cumulative.map(r => ({ t: parseHour(r.hour), v: r.cum_excess_af })) }],
+      { fmt: fmtInt, unit: ' acre-ft', alt: `Running total of river water above normal, ending at ${fmtInt(excessAf)} acre-feet.` });
+    barChart('chart-rain', D.rain_stations, rain?.rain_in);
+  }
+
+  // ---------------------------------------------------------------- plug-in panels (static/panels/*.js)
+  // A panel file calls GSL.register({ id, tab: 'glance' | 'history' | 'details', order, mount(slot) -> root,
+  //   render(data, D, root), renderHistory(data, HIST, root) }). `data` is DATA.sources[id] (or HIST.sources[id]).
+  const PANELS = [];
+  // panels built on Utah Geological Survey data (ids starting "ugs") get a visible badge on their heading
+  const panelRoot = (p) => {
+    if (p.__root) return p.__root;
+    p.__root = p.mount(document.getElementById(`panels-${p.tab}`));
+    const h2 = p.id.startsWith('ugs') && p.__root?.querySelector('h2');
+    if (h2 && !h2.querySelector('.ugs-badge')) h2.prepend(el('span', { className: 'ugs-badge', textContent: 'UGS data' }), ' ');
+    return p.__root;
+  };
+  function renderPanels(which) {
+    for (const p of PANELS) {
+      if (p.tab !== which && !(which === 'history' && p.renderHistory)) continue;
+      try {
+        if (which === 'history' && p.renderHistory && HIST) p.renderHistory(HIST.sources?.[p.id], HIST, panelRoot(p));
+        else if (which !== 'history' && p.render && DATA) p.render(DATA.sources?.[p.id], DATA, panelRoot(p));
+      } catch (e) { console.error(`panel ${p.id}`, e); }
+    }
+  }
+  window.GSL = {
+    register(p) { PANELS.push(p); PANELS.sort((a, c) => (a.order ?? 50) - (c.order ?? 50)); if (DATA) { renderPanels('glance'); renderPanels('details'); } if (HIST) renderPanels('history'); },
+    css, fmtInt, fmt1, pretty, parseDay, parseHour, isoDay, addDays, fmtDay, el, b, link, cite, chart, emptyChart, base, lineChart,
+    GAL_PER_AF, get ugs() { return DATA?.config?.ugs || {}; }, isShown: (tab) => !document.getElementById(`panel-${tab}`).hidden,
+  };
+  fetch('/api/panels').then(r => r.json()).then(files => files.forEach(f => document.body.append(el('script', { src: `panels/${f}` })))).catch(() => {});
+
+  // ---------------------------------------------------------------- period controls
+  const form = document.getElementById('period'), preset = document.getElementById('preset');
+  const fromIn = document.getElementById('from'), toIn = document.getElementById('to');
+  const today = () => isoDay(new Date());
+  const daysAgo = (n) => isoDay(addDays(new Date(), -n));
+  function syncPreset() {
+    const match = [...preset.options].find(o => o.dataset.from === fromIn.value && o.dataset.to === toIn.value);
+    preset.value = match ? match.value : 'custom';
+  }
+  function setPresetDates() {
+    for (const o of preset.options) if (/^\d+$/.test(o.value)) { o.dataset.from = daysAgo(+o.value - 1); o.dataset.to = today(); }
+  }
+  function addEventPresets(events) {
+    [...preset.querySelectorAll('option[data-event]')].forEach(o => o.remove());
+    const custom = preset.querySelector('option[value="custom"]');
+    for (const e of events.slice(0, 8)) {
+      // volunteer gauges report the morning after, so start a day early; end a day late to catch runoff
+      const s = parseDay(e.start_day), t = parseDay(e.end_day);
+      const from = isoDay(addDays(s, -1)), to = [isoDay(addDays(t, 1)), today()].sort()[0];
+      const o = new Option(`Rain around ${fmtDay(s)}${e.end_day !== e.start_day ? '–' + fmtDay(t) : ''} (${e.rain_in.toFixed(1)} in)`, `ev-${e.start_day}`);
+      Object.assign(o.dataset, { event: '1', from, to });
+      preset.insertBefore(o, custom);
+    }
+    syncPreset();
+  }
+  preset.addEventListener('change', () => {
+    const o = preset.selectedOptions[0];
+    if (o.dataset.from) { fromIn.value = o.dataset.from; toIn.value = o.dataset.to; form.requestSubmit(); }
+  });
+  [fromIn, toIn].forEach(i => i.addEventListener('input', syncPreset));
+  form.addEventListener('submit', (e) => { e.preventDefault(); load().catch(showError); });
+
+  const status = document.getElementById('status');
+  async function load() {
+    const q = new URLSearchParams({ from: fromIn.value, to: toIn.value });
+    history.replaceState(null, '', `?${q}${location.hash}`);
+    status.textContent = 'Loading data.';
+    document.getElementById('answer-h').textContent = 'Loading…';
+    const r = await fetch(`/api/data?${q}`); const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.statusText);
+    DATA = j; addEventPresets(j.events); render();
+    status.textContent = `Showing ${windowText(j.window).when}.`;
+  }
+  function showError(e) {
+    document.getElementById('answer-h').replaceChildren(el('span', { className: 'err', textContent: `Couldn't load the gauge data: ${e.message}.` }));
+    document.getElementById('answer-p').textContent = 'Check the dates, or check that the server is running and press Refresh data.';
+    status.textContent = 'Loading failed.';
+  }
+
+  setPresetDates();
+  const qs = new URLSearchParams(location.search);
+  fromIn.value = qs.get('from') || daysAgo(6); toIn.value = qs.get('to') || today();
+  fromIn.max = toIn.max = today();
+  syncPreset();
+  load().catch(showError);
+  const loadHistory = () => HIST ? Promise.resolve() : fetch('/api/history').then(r => r.json()).then(j => { HIST = j; })
+    .catch(() => emptyChart('chart-history', 'Couldn\'t load the history.'));
+
+  // tabs: three levels of detail; arrow keys move between them, the choice is kept in the link
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  function showTab(tab, focus) {
+    tabs.forEach(t => {
+      const on = t === tab;
+      t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+    if (focus) tab.focus();
+    const name = tab.id.replace('tab-', '');
+    history.replaceState(null, '', `${location.search}${name === 'glance' ? '' : '#' + name}`);
+    if (name === 'history') loadHistory().then(() => { drawHistory(); Object.values(charts).forEach(c => c.resize()); });
+    if (name === 'details') render();
+    if (name === 'ag') renderPanels('ag');
+    if (name === 'glance') MAP?.resize();
+    requestAnimationFrame(() => Object.values(charts).forEach(c => c.resize()));
+  }
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => showTab(t));
+    t.addEventListener('keydown', (e) => {
+      const k = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (k) { e.preventDefault(); showTab(tabs[(i + k + tabs.length) % tabs.length], true); }
+      if (e.key === 'Home') { e.preventDefault(); showTab(tabs[0], true); }
+      if (e.key === 'End') { e.preventDefault(); showTab(tabs[tabs.length - 1], true); }
+    });
+  });
+  document.getElementById('sources-btn').addEventListener('click', () => {
+    showTab(document.getElementById('tab-details'));
+    const f = document.querySelector('footer.sources');
+    f.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    f.querySelector('h2').setAttribute('tabindex', '-1'); f.querySelector('h2').focus({ preventScroll: true });
+  });
+  const start = tabs.find(t => `#${t.id.replace('tab-', '')}` === location.hash);
+  if (start) showTab(start);
+
+  // the glance view sizes itself to whatever is left under the header, period bar and tabs
+  const chrome = () => {
+    const top = document.getElementById('panel-glance').getBoundingClientRect().top + window.scrollY;
+    document.documentElement.style.setProperty('--chrome', `${Math.ceil(top) + 16}px`);
+    MAP?.resize();
+  };
+  chrome(); addEventListener('resize', chrome);
+  document.fonts?.ready.then(() => { render(); if (!document.getElementById('panel-history').hidden) drawHistory(); });
+  const btn = document.getElementById('refresh');
+  btn.addEventListener('click', async () => {
+    btn.disabled = true; btn.textContent = 'Refreshing…'; status.textContent = 'Refreshing data.';
+    try { const r = await fetch('/api/refresh', { method: 'POST' }); const j = await r.json(); if (!r.ok) throw new Error(j.error); setPresetDates(); await load(); status.textContent = 'Data updated.'; }
+    catch (e) { showError(e); }
+    finally { btn.disabled = false; btn.textContent = 'Refresh data'; }
+  });
+  let t;
+  new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => Object.values(charts).forEach(c => c.resize()), 120); }).observe(document.querySelector('.wrap'));
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { render(); drawHistory(); });
+  setInterval(() => load().catch(() => {}), 15 * 60 * 1000);
+})();
+</script>
+</body>
+</html>
