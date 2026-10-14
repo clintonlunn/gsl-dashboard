@@ -21,7 +21,7 @@
   const plural = (n, w) => `${fmtInt(n)} ${w}${n === 1 ? '' : 's'}`;
 
   document.head.append(el('style', { textContent: `
-    .ugs-gw .lead { margin: 4px 0 12px; max-width: 80ch; }
+    .ugs-gw .lead { margin: 4px 0 12px; max-width: 100ch; }
     .ugs-gw .lead b { font-family: var(--mono); font-weight: 600; }
     .ugs-gw table { font-size: 13px; }
     .ugs-gw td, .ugs-gw th { padding: 3px 10px; }

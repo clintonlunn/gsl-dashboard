@@ -15,7 +15,7 @@
   const pctIn = (s) => ((s || '').split(';')[0].match(/\(([\d.]+)%\)/) || [])[1];
 
   document.head.append(el('style', { textContent: `
-    .ugs-wet .lead { margin: 4px 0 12px; max-width: 80ch; font-size: .95rem; }
+    .ugs-wet .lead { margin: 4px 0 12px; max-width: 100ch; font-size: .95rem; }
     .ugs-wet .lead b { font-family: var(--mono); font-weight: 600; color: var(--ink); }
     .ugs-wet .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
     .ugs-wet .charts h3 { font: 600 .875rem/1.3 var(--sans); margin: 0 0 4px; color: var(--ink); }
@@ -25,7 +25,7 @@
     .ugs-wet caption { text-align: left; font: 12px var(--sans); color: var(--ink-2); padding-bottom: 4px; }
     .ugs-wet td, .ugs-wet th { padding: 4px 8px; vertical-align: top; text-align: left; }
     .ugs-wet td.n, .ugs-wet th.n { text-align: right; }
-    .ugs-wet ul.facts { margin: 8px 0 0; padding-left: 1.2em; font-size: .9rem; color: var(--ink-2); max-width: 80ch; }
+    .ugs-wet ul.facts { margin: 8px 0 0; padding-left: 1.2em; font-size: .9rem; color: var(--ink-2); max-width: 100ch; }
     .ugs-wet ul.facts b { color: var(--ink); font-family: var(--mono); font-weight: 600; }
   ` }));
 
