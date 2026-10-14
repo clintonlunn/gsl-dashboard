@@ -8,7 +8,7 @@
   const roundAf = (v) => v == null ? '—' : fmtInt(v >= 100000 ? Math.round(v / 10000) * 10000 : v >= 10000 ? Math.round(v / 1000) * 1000 : Math.round(v / 100) * 100);
 
   document.head.append(el('style', { textContent: `
-    #evap .evap-range { font-size: .95rem; color: var(--ink-2); margin: -4px 0 12px; max-width: 80ch; }
+    #evap .evap-range { font-size: .95rem; color: var(--ink-2); margin: -4px 0 12px; max-width: 100ch; }
     #evap .evap-range b { color: var(--ink); font-family: var(--mono); font-weight: 600; }
     #evap .evap-balance { display: flex; flex-wrap: wrap; gap: 6px 24px; margin: 0 0 12px; padding: 0; list-style: none; font: 13px var(--mono); color: var(--ink-2); }
     #evap .evap-balance b { color: var(--ink); font-weight: 600; }

@@ -15,8 +15,8 @@
 
   document.head.append(el('style', { textContent: `
     .lake-precip-chart { width: 100%; height: 300px; }
-    .lake-precip .lead { font-size: 1rem; color: var(--ink); max-width: 72ch; }
-    .lake-precip .why { font-size: .9rem; color: var(--ink-2); max-width: 72ch; }
+    .lake-precip .lead { font-size: 1rem; color: var(--ink); max-width: 100ch; }
+    .lake-precip .why { font-size: .9rem; color: var(--ink-2); max-width: 100ch; }
   ` }));
 
   const srcParts = (d) => [

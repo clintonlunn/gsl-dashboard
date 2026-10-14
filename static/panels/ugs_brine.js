@@ -14,7 +14,7 @@
     .ugs-brine table { font-size: 13px; }
     .ugs-brine td, .ugs-brine th { padding: 3px 10px; }
     .ugs-brine td:not(:first-child), .ugs-brine th:not(:first-child) { text-align: right; }
-    .ugs-brine .lead { margin: 4px 0 12px; max-width: 80ch; }
+    .ugs-brine .lead { margin: 4px 0 12px; max-width: 100ch; }
     .ugs-brine .lead b { font-family: var(--mono); font-weight: 600; }
   ` }));
 

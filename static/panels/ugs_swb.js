@@ -89,6 +89,13 @@
         row(`${m.name.slice(0, 3)} ${m.y}`, 'now', B.soil_sat_pct, hasRange ? [B.ens_min_pct, B.ens_max_pct] : null),
         row(`Usual ${m.name.slice(0, 3)}`, 'usual', B.usual_pct));
       bars.setAttribute('role', 'img');
+      // on narrow screens the range label can run past the track; put it to the left of the range instead
+      requestAnimationFrame(() => bars.querySelectorAll('.ugs-swb-val').forEach(v => {
+        const track = v.parentElement.getBoundingClientRect();
+        if (v.getBoundingClientRect().right > track.right && hasRange) {
+          v.style.left = 'auto'; v.style.right = `calc(${100 - (B.ens_min_pct / max) * 100}% + 6px)`;
+        }
+      }));
       bars.setAttribute('aria-label', `Bar chart: soil ${pct(B.soil_sat_pct)} saturated at the end of ${m.name} ${m.y} (solid bar), versus a usual ${pct(B.usual_pct)} (striped bar, the middle value of ${B.years_compared} other years).`
         + (hasRange ? ` The ${B.members} model runs range from ${pct(B.ens_min_pct)} to ${pct(B.ens_max_pct)}.` : ''));
       const scale = el('div', { className: 'ugs-swb-scale' }, el('span', { textContent: '0%' }), el('span', { textContent: `${max}% saturated` }));
