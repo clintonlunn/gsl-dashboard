@@ -579,6 +579,12 @@ class Handler(SimpleHTTPRequestHandler):
         self.path = url.path
         return super().do_GET()
 
+    def end_headers(self):
+        # local edits to the page and panels show up on a plain reload
+        if not self.path.startswith("/api/"):
+            self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+
     def do_POST(self):
         if self.path == "/api/refresh":
             try:

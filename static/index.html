@@ -108,7 +108,7 @@ button[disabled] { opacity: .65; cursor: progress; }
 .ruler .now-l { position: absolute; top: 4px; transform: translateX(-50%); color: var(--ink); white-space: nowrap; }
 
 .section { padding: 20px 0; border-bottom: 1px solid var(--rule); }
-.section .note { font-size: .95rem; color: var(--ink-2); margin: 4px 0 12px; max-width: 100ch; }
+.section .note { font-size: .95rem; color: var(--ink-2); margin: 4px 0 12px; }
 .wide2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 38rem), 1fr)); column-gap: 32px; }
 .wide2 > .section, .grid2 > .section { min-width: 0; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); column-gap: 28px; }
@@ -171,7 +171,7 @@ th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--gr
 th { font: 500 .8125rem var(--sans); color: var(--ink-2); border-bottom: 1px solid var(--rule); }
 th:first-child, td:first-child { padding-left: 0; }
 th:nth-child(-n+3), td:nth-child(-n+3) { text-align: left; }
-.method { padding: 18px 0 8px; font-size: .9rem; color: var(--ink-2); max-width: 100ch; display: grid; gap: 8px; }
+.method { padding: 18px 0 8px; font-size: .9rem; color: var(--ink-2); display: grid; gap: 8px; }
 .method p { margin: 0; }
 .method b { color: var(--ink); }
 .glossary { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
@@ -896,7 +896,7 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
       return fetch(w.file);
     },
   };
-  api.panels().then(r => r.json()).then(files => files.forEach(f => document.body.append(el('script', { src: `panels/${f}` })))).catch(() => {});
+  api.panels().then(r => r.json()).then(files => files.forEach(f => document.body.append(el('script', { src: `panels/${f}${STATIC ? `?v=${encodeURIComponent(STATIC.built_at)}` : ''}` })))).catch(() => {});
 
   // ---------------------------------------------------------------- period controls
   const form = document.getElementById('period'), preset = document.getElementById('preset');
