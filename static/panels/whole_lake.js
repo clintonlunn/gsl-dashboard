@@ -13,7 +13,7 @@
   const srcLinks = (sites) => sites.flatMap((s, i) => [i ? '; ' : '', link(`${s.site_id} ${s.name}`, USGS(s.site_id))]);
 
   document.head.append(el('style', { textContent: `
-    .wl-lead { font-size: 1rem; margin: 0 0 12px; max-width: 100ch; }
+    .wl-lead { font-size: 1rem; margin: 0 0 12px; }
     .wl-lead b { font-family: var(--mono); font-weight: 600; }
     .wl-chart { width: 100%; height: 470px; }
     .wl-hist-chart { width: 100%; height: 500px; }
