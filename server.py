@@ -12,6 +12,7 @@ date window in SQL, and serves a d3 + MapLibre page at http://127.0.0.1:8765.
 import argparse
 import datetime as dt
 import gzip
+import http.client
 import json
 import os
 import re
@@ -19,6 +20,7 @@ import shutil
 import tempfile
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -73,17 +75,37 @@ lock = threading.Lock()
 
 # ---------------------------------------------------------------- fetching
 
+def retrying(read, tries=4):
+    # public APIs drop connections mid-response now and then (ACIS on long rain pulls); retry those, not 4xx answers
+    for n in range(tries):
+        try:
+            return read()
+        except urllib.error.HTTPError as e:
+            if e.code < 500 and e.code != 429 or n == tries - 1:
+                raise
+        except (http.client.IncompleteRead, http.client.RemoteDisconnected, urllib.error.URLError, TimeoutError, ConnectionError):
+            if n == tries - 1:
+                raise
+        time.sleep(5 * 2 ** n)
+
+
 def fetch(url, body=None, timeout=180):
     req = urllib.request.Request(url, data=json.dumps(body).encode() if body else None,
                                  headers={"Content-Type": "application/json", "User-Agent": "gsl-dashboard"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.load(r)
+
+    def read():
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.load(r)
+    return retrying(read)
 
 
 def fetch_rdb(url):
     req = urllib.request.Request(url, headers={"User-Agent": "gsl-dashboard"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        lines = [l for l in r.read().decode().splitlines() if l and not l.startswith("#")]
+
+    def read():
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return r.read().decode()
+    lines = [l for l in retrying(read).splitlines() if l and not l.startswith("#")]
     if not lines:
         return []
     head = lines[0].split("\t")
