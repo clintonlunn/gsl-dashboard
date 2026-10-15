@@ -162,9 +162,11 @@ def refresh(con, fetch):
     init(con)
     now = dt.datetime.now()
     last, tried = _meta(con, "pulled_at"), _meta(con, "tried_at")
-    if last and (now - dt.datetime.fromisoformat(last)).total_seconds() < REFRESH_SEC:
+    # a database from before owners were pulled has none yet; fill it now rather than waiting out the week
+    missing = not con.execute(f"select count(*) from {NAME}_owners").fetchone()[0]
+    if not missing and last and (now - dt.datetime.fromisoformat(last)).total_seconds() < REFRESH_SEC:
         return
-    if tried and (now - dt.datetime.fromisoformat(tried)).total_seconds() < RETRY_SEC:
+    if not missing and tried and (now - dt.datetime.fromisoformat(tried)).total_seconds() < RETRY_SEC:
         return
     _meta_set(con, "tried_at", now.isoformat(timespec="seconds"))
     best, kinds, prios = {}, {}, {}
