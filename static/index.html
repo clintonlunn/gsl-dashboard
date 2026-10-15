@@ -856,7 +856,8 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
     for (const table of document.querySelectorAll('.panel:not(.glance) table')) {
       if (table.closest('.sr-only')) continue; // screen-reader copies of charts stay whole
       // some tables group rows into several tbodies; count them together
-      const rows = [...table.querySelectorAll(':scope > tbody > tr')], tb = table.tBodies[0];
+      // .detail-row rows open under a row on request and keep their own hidden state
+      const rows = [...table.querySelectorAll(':scope > tbody > tr:not(.detail-row)')], tb = table.tBodies[0];
       if (!tb || (table.__first === rows[0] && table.__n === rows.length)) continue;
       table.__first = rows[0]; table.__n = rows.length;
       table.__more?.remove(); table.__more = null;
@@ -879,10 +880,15 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
   let shortenQueued = false;
   new MutationObserver(() => { if (!shortenQueued) { shortenQueued = true; requestAnimationFrame(() => { shortenQueued = false; shortenTables(); }); } })
     .observe(document.querySelector('main'), { childList: true, subtree: true });
+  const DETAIL = {};
   window.GSL = {
     register(p) { PANELS.push(p); PANELS.sort((a, c) => (a.order ?? 50) - (c.order ?? 50)); if (DATA) { renderPanels('glance'); renderPanels('details'); } if (HIST) renderPanels('history'); },
     css, fmtInt, fmt1, pretty, parseDay, parseHour, isoDay, addDays, fmtDay, el, b, link, cite, chart, emptyChart, base, lineChart,
-    GAL_PER_AF, get ugs() { return DATA?.config?.ugs || {}; }, isShown: (tab) => !document.getElementById(`panel-${tab}`).hidden,
+    GAL_PER_AF, get ugs() { return DATA?.config?.ugs || {}; },
+    // a source's on-demand extras (sources/<name>.py detail()), fetched once
+    detail: (name) => (DETAIL[name] ||= fetch(STATIC ? `data/detail/${name}.json?v=${encodeURIComponent(STATIC.built_at)}` : `/api/detail/${name}`)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`detail ${r.status}`))).catch(e => { delete DETAIL[name]; throw e; })),
+    isShown: (tab) => !document.getElementById(`panel-${tab}`).hidden,
   };
   // the GitHub Pages copy has no server: the export step writes the same JSON under data/ and inlines GSL_STATIC
   const STATIC = window.GSL_STATIC || null;
