@@ -102,7 +102,7 @@
 
   function draw(d) {
     const lead = document.getElementById('rh-lead');
-    if (!d || d.error || !d.holders) {
+    if (!d || d.error || !d.holders?.length) {
       lead.textContent = d?.error || 'Water rights holders are not available right now.';
       document.getElementById('rh-table').replaceChildren();
       document.getElementById('rh-map').hidden = true;
