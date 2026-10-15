@@ -85,6 +85,31 @@ def _paged(fetch, params, what):
         offset += len(feats)
 
 
+# holder types, first match wins; people and family trusts are whatever ORG doesn't match
+KINDS = [
+    ("Federal agencies", r"^USA\b"),
+    ("State agencies", r"^UTAH (BOARD|DIVISION|DEPARTMENT|SCHOOL|STATE|TRANSPORTATION)|^SCHOOL AND INSTITUTIONAL"),
+    ("Water and conservancy districts", r"DISTRICT"),
+    ("Power companies", r"PACIFICORP|POWER|ENERGY"),
+    ("Mining and industry", r"KENNECOTT|MINING|MINES|COPPER|STEEL|ROCK PRODUCTS|NUCOR|CHEMICAL|MAGNESIUM|MINERALS|CEMENT|REFIN|"
+                            r"INSTRUMENTS|PIPE|ENSIGN-BICKFORD|GRAVEL|SAND|PAVING"),
+    ("Churches and church-owned companies", r"CHURCH|FARMLAND RESERVE|PROPERTY RESERVE|CORPORATION OF THE PRESIDING|DESERET|DIOCESE"),
+    ("Canal, ditch and water companies", r"CANAL|IRRIG|DITCH|WATER USERS|WATER (COMPANY|ASSOCIATION|DISTRIBUTION)|DISTRIBUTING|"
+                                         r"RESERVOIR (COMPANY|ASSOCIATION)|POND COMPANY|WATERWORKS|SECONDARY WATER"),
+    ("Cities, towns and counties", r"CITY|TOWN|COUNTY|MUNICIPAL"),
+    ("Duck clubs and conservation groups", r"DUCK|GUN CLUB|SPORTSM|CONSERVANCY|AUDUBON|WILDLIFE|CLUB"),
+    ("Farms and ranches", r"RANCH|FARM|DAIRY|CATTLE|LIVESTOCK|SHEEP|HORSES|ORCHARD|FEEDLOT"),
+]
+KIND_ORDER = [k for k, _ in KINDS] + ["Other businesses", "People and family trusts"]
+_KINDS = [(k, re.compile(p)) for k, p in KINDS]
+
+
+def holder_kind(owner, org):
+    if not org:
+        return "People and family trusts"
+    return next((k for k, p in _KINDS if p.search(owner)), "Other businesses")
+
+
 # (pattern, replacement) applied in order after the abbreviations; folds the big holders' many spellings
 FOLD = [
     (r" (DBA|--) .*$| A UTAH (LIMITED LIABILITY|NON ?PROFIT|) ?(COMPANY|CORPORATION).*$| A BODY CORPORATE.*$", ""),
@@ -238,6 +263,16 @@ def query(con, window):
         top as (select owner from (select owner, row_number() over (partition by basin order by acft desc) k from hb) where k <= {TOP_OWNERS}
                 union select owner from (select owner from hb group by owner order by sum(acft) desc limit {TOP_OWNERS}))
         select owner, org::int, basin, rights, cfs, acft, shared from hb where owner in (select owner from top) order by acft desc""").fetchall()
+    holders = [list(r) + [KIND_ORDER.index(holder_kind(r[0], r[1]))] for r in holders]
+    # breakdown by holder type, with each right split evenly among its owners so the types add up to the basin total
+    by_holder_kind = {}
+    for owner, org, bs, cfs, acft, nr in con.execute(f"""
+            with n as (select wrnum, count(*) n from {O} group by 1)
+            select o.owner, o.org, r.basin, sum(r.cfs / n.n), sum(r.acft / n.n), count(*)
+            from {O} o join {T} r using (wrnum) join n using (wrnum) group by 1, 2, 3""").fetchall():
+        k = (bs, KIND_ORDER.index(holder_kind(owner, org)))
+        t = by_holder_kind.setdefault(k, [0, 0, 0.0, 0.0])
+        t[0] += 1; t[1] += nr; t[2] += cfs or 0; t[3] += acft or 0
     # big rights for the map: [wrnum, basin, uses, cfs, acft, priority year, owners] and their points [lon, lat, right index]
     big = con.execute(f"""
         select r.wrnum, r.basin, r.uses, r.cfs, r.acft, substr(r.priority, 1, 4),
@@ -247,7 +282,8 @@ def query(con, window):
     points = [[lon, lat, idx[w]] for w, lon, lat in con.execute(f"select wrnum, lon, lat from {NAME}_points").fetchall() if w in idx]
     return {
         "rights": n, "areas": AREAS, "uses": USES,
-        "holders": [list(r) for r in holders], "big": [list(r) for r in big], "points": points,
+        "holders": holders, "holder_kinds": KIND_ORDER,
+        "by_holder_kind": [[bs, k, *v[:2], round(v[2]), round(v[3])] for (bs, k), v in sorted(by_holder_kind.items())], "big": [list(r) for r in big], "points": points,
         "big_floor": {"acft": BIG_ACFT, "cfs": BIG_CFS},
         "by_basin": [list(r) for r in by_basin], "by_use": [list(r) for r in by_use],
         "by_decade": [list(r) for r in by_decade], "by_kind": [list(r) for r in by_kind],

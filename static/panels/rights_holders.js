@@ -1,12 +1,14 @@
 // Who holds the water rights: owners from the Division of Water Rights' points of diversion, with a map of the big rights.
 // Data rides on the water_rights source (DATA.sources.water_rights). Rows are arrays:
-//   holders [owner, org (1/0), basin, rights, cfs, acft, rights shared with other owners]
+//   holders [owner, org (1/0), basin, rights, cfs, acft, rights shared with other owners, holder type index]
+//   by_holder_kind [basin, holder type index, holders, rights, cfs, acft]  shared rights split evenly, so types add up
+//   holder_kinds   holder type names, in index order
 //   big     [wrnum, basin, uses, cfs, acft, priority year, owners joined by ' | ']
 //   points  [lon, lat, index into big]
 (() => {
   const G = window.GSL;
   if (!G) return;
-  const { el, b, link, cite, fmtInt } = G;
+  const { el, b, link, cite, css, fmtInt } = G;
   const BASINS = ['Bear River', 'Weber River', 'Jordan River', 'Utah Lake'];
   const RIGHT = (wr) => `https://waterrights.utah.gov/asp_apps/wrprint/wrprint.asp?wrnum=${encodeURIComponent(wr)}`;
   const ac = (v) => fmtInt(Math.round(v));
@@ -31,6 +33,7 @@
     .rh-controls { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; margin: 0 0 8px; font-size: .875rem; color: var(--ink-2); }
     .rh-controls label { display: inline-flex; gap: 6px; align-items: center; min-height: 24px; }
     .rh-controls input[type=search] { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--ink-2); padding: 4px 6px; min-width: 14rem; min-height: 28px; }
+    .rh-chart { width: 100%; height: 400px; }
     .rh-map { width: 100%; height: 480px; border: 1px solid var(--rule); background: var(--grid); }
     .rh-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0 0; padding: 0; list-style: none; font-size: .875rem; color: var(--ink-2); }
     .rh-legend li { display: inline-flex; gap: 6px; align-items: center; }
@@ -54,13 +57,16 @@
       const basin = el('select', { id: 'rh-basin' }, el('option', { value: '', textContent: 'All four basins' }),
         ...BASINS.map(k => el('option', { value: k, textContent: k })));
       const who = el('select', { id: 'rh-who' }, el('option', { value: '', textContent: 'Everyone' }),
-        el('option', { value: '1', textContent: 'Companies, cities and agencies' }), el('option', { value: '0', textContent: 'People and trusts' }));
+        el('option', { value: 'o1', textContent: 'All organizations' }));
       const q = el('input', { type: 'search', id: 'rh-q', placeholder: 'e.g. canal, Kennecott, Smith', autocomplete: 'off' });
       const root = el('section', { className: 'section rh' },
         el('h2', { id: 'rh-h', textContent: 'Who holds the water rights' }),
         el('p', { className: 'lead', id: 'rh-lead', textContent: '—' }),
         el('div', { className: 'rh-controls' }, el('label', { htmlFor: 'rh-basin' }, 'Basin ', basin), el('label', { htmlFor: 'rh-who' }, 'Holders ', who),
           el('label', { htmlFor: 'rh-q' }, 'Find a name ', q)),
+        el('h3', { id: 'rh-kh' }),
+        el('p', { className: 'note', id: 'rh-knote' }),
+        el('div', { className: 'chart rh-chart', id: 'rh-chart' }),
         el('p', { className: 'note', id: 'rh-mapnote' }),
         el('div', { className: 'rh-map', id: 'rh-map' }),
         el('ul', { className: 'rh-legend', ariaLabel: 'Map colours' }, ...USE.map(u => el('li', {}, el('i', { style: `background:${u.color}` }), u.label))),
@@ -82,18 +88,24 @@
       let t; q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(redraw, 200); });
       return root;
     },
-    render(_, D) { this.__d = D?.sources?.water_rights; draw(this.__d); },
+    render(_, D) {
+      const d = this.__d = D?.sources?.water_rights;
+      const who = document.getElementById('rh-who');
+      if (d?.holder_kinds && who.options.length < 3) who.append(...d.holder_kinds.map((k, i) => el('option', { value: `k${i}`, textContent: k })));
+      draw(d);
+    },
   });
 
   function holderRows(d) {
     const basin = document.getElementById('rh-basin').value, who = document.getElementById('rh-who').value;
     const q = document.getElementById('rh-q').value.trim().toUpperCase();
     const m = new Map();
-    for (const [owner, org, bs, n, cfs, acft, shared] of d.holders) {
+    for (const [owner, org, bs, n, cfs, acft, shared, kind] of d.holders) {
       if (basin && bs !== basin) continue;
-      if (who && String(org) !== who) continue;
+      if (who === 'o1' && !org) continue;
+      if (who[0] === 'k' && kind !== +who.slice(1)) continue;
       if (q && !owner.includes(q)) continue;
-      const r = m.get(owner) || { owner, org, basins: new Set(), n: 0, cfs: 0, acft: 0, shared: 0 };
+      const r = m.get(owner) || { owner, org, kind, basins: new Set(), n: 0, cfs: 0, acft: 0, shared: 0 };
       r.basins.add(bs); r.n += n; r.cfs += cfs; r.acft += acft; r.shared += shared;
       m.set(owner, r);
     }
@@ -128,15 +140,54 @@
         btn.setAttribute('aria-label', `Show ${nice(r.owner)}'s big rights on the map`);
         btn.addEventListener('click', () => { FOCUS = FOCUS === r.owner ? null : r.owner; draw(d); document.getElementById('rh-map').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
         return el('tr', {}, el('td', { textContent: i + 1 }), el('th', { scope: 'row', textContent: nice(r.owner) }),
-          el('td', { textContent: r.org ? 'Organization' : 'Person or trust' }), el('td', { textContent: fmtInt(r.n) }),
+          el('td', { textContent: d.holder_kinds?.[r.kind] ?? (r.org ? 'Organization' : 'Person or trust') }), el('td', { textContent: fmtInt(r.n) }),
           el('td', { textContent: r.shared ? fmtInt(r.shared) : '—' }), el('td', { textContent: ac(r.cfs) }), el('td', { textContent: ac(r.acft) }), el('td', {}, btn));
       }))));
+    drawKinds(d, place);
     drawMap(d, rows);
 
     const A = d.about;
     cite('rh-src', A.credit, ', ', link('Points of Diversion', A.item_url), ' (', link('feature service', A.layer_url),
       '), owner field as filed. Holder lists cover the top 100 in each basin; look up anyone else in the ', link('Division\'s records', A.lookup_url), '.'
       + (d.pulled_at ? ` Pulled ${d.pulled_at.slice(0, 10)}.` : ''));
+  }
+
+  // acre-feet by holder type; click a bar to list that type's holders
+  function drawKinds(d, place) {
+    if (!d.by_holder_kind) return;
+    const basin = document.getElementById('rh-basin').value, who = document.getElementById('rh-who').value;
+    const K = d.holder_kinds, t = K.map(() => [0, 0, 0]);
+    for (const [bs, k, h, n, , acft] of d.by_holder_kind) if (!basin || bs === basin) { t[k][0] += h; t[k][1] += n; t[k][2] += acft; }
+    const total = t.reduce((x, r) => x + r[2], 0);
+    const order = K.map((k, i) => i).filter(i => t[i][2] > 0).sort((x, y) => t[y][2] - t[x][2]);
+    const pct = (v) => `${(100 * v / total).toFixed(v / total < .01 ? 1 : 0)}%`;
+    document.getElementById('rh-kh').textContent = `Who holds the water in ${place}, by kind of holder`;
+    document.getElementById('rh-knote').textContent = 'Acre-feet a year allowed, with each shared right split evenly among its owners so the bars add up to the basin total. '
+      + 'Click a bar (or use the Holders menu) to list that kind of holder below.';
+    const ink = css('--ink'), ink2 = css('--ink-2'), paper = css('--paper');
+    const sel = who[0] === 'k' ? +who.slice(1) : null;
+    const o = G.base();
+    o.aria.decal = { show: false };
+    o.aria.label = { enabled: true, description: `Bar chart of water rights by kind of holder in ${place}, ${af(total)} acre-feet a year in all. `
+      + order.map(i => `${K[i]}: ${af(t[i][2])} acre-feet, ${pct(t[i][2])}, ${fmtInt(t[i][0])} holders.`).join(' ') };
+    o.grid = { left: 8, right: 120, top: 8, bottom: 8, containLabel: true };
+    o.xAxis = { type: 'value', show: false };
+    o.yAxis = { type: 'category', inverse: true, data: order.map(i => K[i]), axisLine: { show: false }, axisTick: { show: false },
+      axisLabel: { color: ink, fontSize: 13, width: 230, overflow: 'break' } };
+    o.tooltip = { ...o.tooltip, trigger: 'item', formatter: (p) => { const r = t[order[p.dataIndex]];
+      return `<b>${K[order[p.dataIndex]]}</b><br>${ac(r[2])} acre-feet a year (${pct(r[2])})<br>${fmtInt(r[0])} holders · ${fmtInt(r[1])} rights`; } };
+    o.series = [{ type: 'bar', barMaxWidth: 22, cursor: 'pointer',
+      data: order.map(i => ({ value: Math.round(t[i][2]), itemStyle: { color: sel == null || sel === i ? css('--hydro') : css('--off') } })),
+      label: { show: true, position: 'right', color: ink2, fontSize: 12, formatter: (p) => `${af(p.value)} · ${pct(p.value)}` },
+      itemStyle: { borderColor: paper, borderWidth: 0.5 } }];
+    const ch = G.chart('rh-chart');
+    ch.setOption(o, true);
+    ch.off('click');
+    ch.on('click', (p) => {
+      const sel2 = document.getElementById('rh-who'), v = `k${order[p.dataIndex]}`;
+      sel2.value = sel2.value === v ? '' : v;
+      sel2.dispatchEvent(new Event('change'));
+    });
   }
 
   function drawMap(d, rows) {
