@@ -56,6 +56,7 @@ def init(con):
             status varchar, kind varchar, cfs double, acft double, priority varchar, pods integer);
         create table if not exists {NAME}_owners (wrnum varchar, owner varchar, org boolean);
         create table if not exists {NAME}_points (wrnum varchar, lon double, lat double);
+        create table if not exists {NAME}_sources (wrnum varchar, source varchar, pods integer);
         create table if not exists {NAME}_meta (k varchar primary key, v varchar);""")
 
 
@@ -151,6 +152,16 @@ def _owners(fetch):
     return out
 
 
+def _sources(fetch):
+    out = []
+    for f in _paged(fetch, {"where": _where(), "groupByFieldsForStatistics": "WRNUM,SOURCE", "orderByFields": "WRNUM,SOURCE",
+                            "outStatistics": json.dumps([{"statisticType": "count", "onStatisticField": "OBJECTID", "outStatisticFieldName": "n"}])}, "sources"):
+        a = f["attributes"]
+        if a.get("WRNUM"):
+            out.append((a["WRNUM"], re.sub(r"\s+", " ", (a.get("SOURCE") or "").strip()) or None, a.get("n") or 0))
+    return out
+
+
 def _points(fetch):
     out = set()
     for f in _paged(fetch, {"where": f"{_where()} AND (ACFT >= {BIG_ACFT} OR CFS >= {BIG_CFS})", "outFields": "WRNUM",
@@ -188,7 +199,7 @@ def refresh(con, fetch):
     now = dt.datetime.now()
     last, tried = _meta(con, "pulled_at"), _meta(con, "tried_at")
     # a database from before owners were pulled has none yet; fill it now rather than waiting out the week
-    missing = not con.execute(f"select count(*) from {NAME}_owners").fetchone()[0]
+    missing = not all(con.execute(f"select count(*) from {NAME}_{t}").fetchone()[0] for t in ("owners", "sources"))
     if not missing and last and (now - dt.datetime.fromisoformat(last)).total_seconds() < REFRESH_SEC:
         return
     if not missing and tried and (now - dt.datetime.fromisoformat(tried)).total_seconds() < RETRY_SEC:
@@ -212,7 +223,7 @@ def refresh(con, fetch):
                 best[wr] = (wr, area, AREAS[area], a.get("USES") or "", a.get("SUMMARY_ST"), None, cfs, acft)
     if len(best) < 1000:
         raise RuntimeError(f"{NAME}: only {len(best)} rights came back")
-    owners, points = _owners(fetch), _points(fetch)
+    owners, points, srcs = _owners(fetch), _points(fetch), _sources(fetch)
     rows = [r[:5] + (max(kinds[r[0]], key=kinds[r[0]].get),) + r[6:8] + (prios.get(r[0]), sum(kinds[r[0]].values()))
             for r in best.values()]
     con.execute("begin")
@@ -223,11 +234,41 @@ def refresh(con, fetch):
         con.executemany(f"insert into {NAME}_owners values (?, ?, ?)", sorted(owners))
         con.execute(f"delete from {NAME}_points")
         con.executemany(f"insert into {NAME}_points values (?, ?, ?)", sorted(points))
+        con.execute(f"delete from {NAME}_sources")
+        con.executemany(f"insert into {NAME}_sources values (?, ?, ?)", srcs)
         _meta_set(con, "pulled_at", dt.datetime.now().isoformat(timespec="seconds"))
         con.execute("commit")
     except Exception:
         con.execute("rollback")
         raise
+
+
+def _hb_sql(T, O):
+    """CTEs: per (owner x right), hb (owner x basin totals) and top (the holders the page lists)."""
+    return f"""per as (
+            select o.owner, o.org, r.basin, r.wrnum, r.cfs, r.acft, (select count(*) from {O} x where x.wrnum = r.wrnum) as n
+            from {O} o join {T} r using (wrnum)),
+        hb as (select owner, any_value(org) org, basin, count(*) rights, round(sum(cfs)) cfs, round(sum(acft)) acft,
+                   count(*) filter (where n > 1) shared from per group by owner, basin),
+        top as (select owner from (select owner, row_number() over (partition by basin order by acft desc) k from hb) where k <= {TOP_OWNERS}
+                union select owner from (select owner from hb group by owner order by sum(acft) desc limit {TOP_OWNERS}))"""
+
+
+def detail(con):
+    """Every right of each listed holder, for the page's per-holder breakdown; loaded only when someone opens one."""
+    init(con)
+    T, O = f"{NAME}_rights", f"{NAME}_owners"
+    rows = con.execute(f"""
+        with {_hb_sql(T, O)},
+        src as (select wrnum, arg_max(source, pods) as src_name from {NAME}_sources where source is not null group by 1)
+        select p.owner, p.wrnum, p.basin, r.uses, r.kind, src.src_name, r.cfs, r.acft, substr(r.priority, 1, 4), p.n
+        from per p join {T} r using (wrnum) left join src using (wrnum)
+        where p.owner in (select owner from top) order by p.owner, r.acft desc""").fetchall()
+    owners = sorted({r[0] for r in rows})
+    ix = {o: i for i, o in enumerate(owners)}
+    # rights rows: [owner index, wrnum, basin, uses, kind, source, cfs, acft, priority year, owners on the right]
+    return {"owners": owners, "rights": [[ix[r[0]], *r[1:6], round(r[6] or 0, 2), round(r[7] or 0), r[8], r[9]] for r in rows],
+            "pulled_at": _meta(con, "pulled_at")}
 
 
 def query(con, window):
@@ -255,13 +296,7 @@ def query(con, window):
     # holders: full amount of every right they're on (alone or jointly), per basin; top holders of each basin and overall
     O = f"{NAME}_owners"
     holders = con.execute(f"""
-        with per as (
-            select o.owner, o.org, r.basin, r.wrnum, r.cfs, r.acft, (select count(*) from {O} x where x.wrnum = r.wrnum) as n
-            from {O} o join {T} r using (wrnum)),
-        hb as (select owner, any_value(org) org, basin, count(*) rights, round(sum(cfs)) cfs, round(sum(acft)) acft,
-                   count(*) filter (where n > 1) shared from per group by owner, basin),
-        top as (select owner from (select owner, row_number() over (partition by basin order by acft desc) k from hb) where k <= {TOP_OWNERS}
-                union select owner from (select owner from hb group by owner order by sum(acft) desc limit {TOP_OWNERS}))
+        with {_hb_sql(T, O)}
         select owner, org::int, basin, rights, cfs, acft, shared from hb where owner in (select owner from top) order by acft desc""").fetchall()
     holders = [list(r) + [KIND_ORDER.index(holder_kind(r[0], r[1]))] for r in holders]
     # breakdown by holder type, with each right split evenly among its owners so the types add up to the basin total

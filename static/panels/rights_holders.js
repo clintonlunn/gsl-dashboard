@@ -38,18 +38,38 @@
     .rh-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0 0; padding: 0; list-style: none; font-size: .875rem; color: var(--ink-2); }
     .rh-legend li { display: inline-flex; gap: 6px; align-items: center; }
     .rh-legend i { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #0c100f; display: inline-block; }
-    .rh-table th, .rh-table td { font-size: 13px; }
-    .rh-table th:nth-child(-n+3), .rh-table td:nth-child(-n+3) { text-align: left; }
-    .rh-table th:nth-child(n+4), .rh-table td:nth-child(n+4) { text-align: right; }
+    .rh-table { table-layout: fixed; width: 100%; min-width: 56rem; }
+    .rh-table > thead th:nth-child(1) { width: 2.5rem; } .rh-table > thead th:nth-child(3) { width: 15rem; }
+    .rh-table > thead th:nth-child(n+4):nth-child(-n+7) { width: 6.5rem; } .rh-table > thead th:nth-child(n+8) { width: 6.5rem; }
+    .rh-table > thead th:nth-child(n+8), .rh-table > tbody > tr > td:nth-child(n+8) { text-align: center; }
+    .rh-table th, .rh-table td { font-size: 13px; overflow-wrap: anywhere; }
+    .rh-table > * > tr > :nth-child(-n+3) { text-align: left; }
+    .rh-table > * > tr > :nth-child(n+4):nth-child(-n+7) { text-align: right; }
     .rh-table tbody th { border-bottom: 1px solid var(--grid-major); font: 500 13px var(--sans); color: var(--ink); text-transform: none; letter-spacing: 0; }
     .rh-table button { font: inherit; font-size: 12px; color: var(--ink); background: none; border: 1px solid var(--ink-2); padding: 2px 8px; min-height: 24px; cursor: pointer; }
     .rh-table button[aria-pressed=true] { background: var(--ink); color: var(--paper); }
     .rh h3 { font: 600 .95rem var(--sans); margin: 12px 0 4px; }
     .rh-caveats { margin: 6px 0 0; padding-left: 1.1em; font-size: .95rem; color: var(--ink-2); display: grid; gap: 4px; }
     .rh-pop a { color: inherit; }
+    .rh-table td.rh-more { text-align: left; padding: 8px 0 16px 24px; border-bottom: 1px solid var(--grid-major); }
+    .rh-more .sum { margin: 0 0 6px; font: 15px/1.5 var(--sans); color: var(--ink); }
+    .rh-more .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 4px 28px; }
+    .rh-more .grid > div { min-width: 0; }
+    .rh-table td.rh-more, .rh-more .grid th { white-space: normal; }
+    .rh-more .grid th { overflow-wrap: anywhere; }
+    .rh-more .grid table { table-layout: fixed; }
+    .rh-more .grid :is(th, td):first-child { width: 46%; }
+    .rh-more .rights { table-layout: auto; }
+    .rh-more h4 { font: 600 .875rem var(--sans); margin: 8px 0 2px; }
+    .rh-more table { width: 100%; }
+    .rh-more :is(th, td) { font-size: 12.5px; text-align: right; }
+    .rh-more :is(th, td):first-child { text-align: left; }
+    .rh-more .rights :is(th, td):nth-child(-n+3) { text-align: left; }
+    .rh-more .none { color: var(--ink-2); font-size: .9rem; margin: 6px 0 0; }
   ` }));
 
   let MAP = null, POP = null, FOCUS = null;
+  const OPEN = new Set();
 
   G.register({
     id: 'rights_holders', tab: 'ag', order: 31,
@@ -71,7 +91,7 @@
         el('div', { className: 'rh-map', id: 'rh-map' }),
         el('ul', { className: 'rh-legend', ariaLabel: 'Map colours' }, ...USE.map(u => el('li', {}, el('i', { style: `background:${u.color}` }), u.label))),
         el('h3', { id: 'rh-th' }),
-        el('div', { className: 'tablewrap', id: 'rh-table' }),
+        el('div', { id: 'rh-table' }),
         el('h3', { textContent: 'Reading these numbers' }),
         el('ul', { className: 'rh-caveats' },
           el('li', { textContent: 'Amounts are legal ceilings on paper, not metered use. Nobody reports actual diversions for most of these rights.' }),
@@ -131,18 +151,32 @@
 
     const T = document.getElementById('rh-table');
     document.getElementById('rh-th').textContent = rows.length ? `Top ${Math.min(rows.length, 100)} holders by volume in ${place}` : 'No holders match';
-    T.replaceChildren(el('table', { className: 'rh-table' },
+    T.replaceChildren(el('div', { className: 'tablewrap' }, el('table', { className: 'rh-table' },
       el('caption', { className: 'sr-only', textContent: `Largest water-right holders in ${place}, by acre-feet a year allowed. Owners on a shared right each count it in full.` }),
-      el('thead', {}, el('tr', {}, ...['#', 'Holder', 'Kind', 'Rights', 'Shared', 'cfs', 'Acre-feet', 'Map'].map(h => el('th', { scope: 'col', textContent: h })))),
-      el('tbody', {}, ...rows.slice(0, 100).map((r, i) => {
+      el('thead', {}, el('tr', {}, ...['#', 'Holder', 'Kind', 'Rights', 'Shared', 'cfs', 'Acre-feet', 'Map', 'Breakdown'].map(h => el('th', { scope: 'col', textContent: h })))),
+      el('tbody', {}, ...rows.slice(0, 100).flatMap((r, i) => {
         const btn = el('button', { type: 'button', textContent: 'Show' });
         btn.setAttribute('aria-pressed', String(FOCUS === r.owner));
         btn.setAttribute('aria-label', `Show ${nice(r.owner)}'s big rights on the map`);
         btn.addEventListener('click', () => { FOCUS = FOCUS === r.owner ? null : r.owner; draw(d); document.getElementById('rh-map').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
-        return el('tr', {}, el('td', { textContent: i + 1 }), el('th', { scope: 'row', textContent: nice(r.owner) }),
+        const more = el('button', { type: 'button', textContent: OPEN.has(r.owner) ? 'Hide' : 'Open' });
+        const id = `rh-more-${i}`;
+        more.setAttribute('aria-expanded', String(OPEN.has(r.owner)));
+        more.setAttribute('aria-controls', id);
+        more.setAttribute('aria-label', `Breakdown of ${nice(r.owner)}'s rights`);
+        const extra = el('tr', { id, hidden: !OPEN.has(r.owner), className: 'detail-row' }, el('td', { className: 'rh-more', colSpan: 9 }));
+        more.addEventListener('click', () => {
+          const on = !OPEN.has(r.owner);
+          on ? OPEN.add(r.owner) : OPEN.delete(r.owner);
+          more.setAttribute('aria-expanded', String(on)); more.textContent = on ? 'Hide' : 'Open';
+          extra.hidden = !on;
+          if (on) breakdown(extra.firstChild, r, d);
+        });
+        if (OPEN.has(r.owner)) breakdown(extra.firstChild, r, d);
+        return [el('tr', {}, el('td', { textContent: i + 1 }), el('th', { scope: 'row', textContent: nice(r.owner) }),
           el('td', { textContent: d.holder_kinds?.[r.kind] ?? (r.org ? 'Organization' : 'Person or trust') }), el('td', { textContent: fmtInt(r.n) }),
-          el('td', { textContent: r.shared ? fmtInt(r.shared) : '—' }), el('td', { textContent: ac(r.cfs) }), el('td', { textContent: ac(r.acft) }), el('td', {}, btn));
-      }))));
+          el('td', { textContent: r.shared ? fmtInt(r.shared) : '—' }), el('td', { textContent: ac(r.cfs) }), el('td', { textContent: ac(r.acft) }), el('td', {}, btn), el('td', {}, more)), extra];
+      })))));
     drawKinds(d, place);
     drawMap(d, rows);
 
@@ -150,6 +184,53 @@
     cite('rh-src', A.credit, ', ', link('Points of Diversion', A.item_url), ' (', link('feature service', A.layer_url),
       '), owner field as filed. Holder lists cover the top 100 in each basin; look up anyone else in the ', link('Division\'s records', A.lookup_url), '.'
       + (d.pulled_at ? ` Pulled ${d.pulled_at.slice(0, 10)}.` : ''));
+  }
+
+  // one holder, a layer down: what its rights are for, where the water comes from, and the rights themselves
+  const UNDER = {
+    'USA BUREAU OF RECLAMATION': 'Reclamation sells most of this water by contract to conservancy districts and canal companies; those contracts are not in the state\'s water-rights records.',
+    'UTAH BOARD OF WATER RESOURCES': 'The Board holds rights for state-funded reservoir projects and passes the water to local districts and companies.',
+  };
+  async function breakdown(cell, r, d) {
+    const basin = document.getElementById('rh-basin').value;
+    cell.replaceChildren(el('p', { className: 'none', textContent: 'Loading this holder\'s rights…' }));
+    let X;
+    try { X = await G.detail('water_rights'); } catch { cell.replaceChildren(el('p', { className: 'none', textContent: 'Could not load the rights list. Try again in a moment.' })); return; }
+    const oi = X.owners.indexOf(r.owner);
+    const rights = X.rights.filter(x => x[0] === oi && (!basin || x[2] === basin));
+    if (!rights.length) { cell.replaceChildren(el('p', { className: 'none', textContent: 'No rights listed for this holder.' })); return; }
+    // rows: [owner, wrnum, basin, uses, kind, source, cfs, acft, priority, owners on the right]
+    const tot = rights.reduce((t, x) => t + x[7], 0), cfs = rights.reduce((t, x) => t + x[6], 0);
+    const shared = rights.filter(x => x[9] > 1), own = rights.reduce((t, x) => t + x[7] / x[9], 0);
+    const years = rights.map(x => x[8]).filter(y => y && y >= '1840').sort();
+    const group = (key) => { const m = new Map(); for (const x of rights) for (const k of [].concat(key(x))) { const g = m.get(k) || [0, 0, 0]; g[0]++; g[1] += x[6]; g[2] += x[7]; m.set(k, g); } return [...m].sort((a, c) => c[1][2] - a[1][2]); };
+    const share = (v) => tot ? `${Math.round(100 * v / tot)}%` : '—';
+    const mini = (title, cap, head, rows) => el('div', {}, el('h4', { textContent: title }),
+      el('table', {}, el('caption', { className: 'sr-only', textContent: cap }), el('thead', {}, el('tr', {}, ...head.map(h => el('th', { scope: 'col', textContent: h })))),
+        el('tbody', {}, ...rows.map(c => el('tr', {}, el('th', { scope: 'row', textContent: c[0] }), ...c.slice(1).map(v => el('td', { textContent: v })))))));
+    const uses = group(x => x[3] ? x[3].split('').map(u => d.uses[u] || u) : ['Not listed']);
+    const srcs = group(x => x[5] || 'Not listed');
+    const kinds = group(x => /Underground|Well/.test(x[4] || '') ? 'Wells' : ['Surface', 'Point to Point', 'Point of Return', 'Rediversion', 'Drain'].includes(x[4]) ? 'Rivers, streams and drains' : x[4] || 'Other');
+    const who = nice(r.owner);
+    cell.replaceChildren(
+      el('p', { className: 'sum' }, b(who), ` holds ${fmtInt(rights.length)} rights${basin ? ` in the ${basin} basin` : ''}, allowing up to `, b(`${ac(tot)} acre-feet a year`),
+        ` (${ac(cfs)} cfs)` + (years.length ? `, with priority dates from ${years[0]} to ${years.at(-1)}` : '') + '. '
+        + (shared.length ? `${fmtInt(shared.length)} of them are shared with other owners; split evenly, its part is about ${ac(own)} acre-feet. ` : '')
+        + (UNDER[r.owner] || (/CANAL|IRRIG|DITCH|WATER USERS|WATER COMPANY|DISTRIBUTING|RESERVOIR COMPANY/.test(r.owner)
+          ? 'Who owns shares in the company, and so which farms get this water, is the company\'s own record and not public.' : ''))),
+      el('div', { className: 'grid' },
+        mini('What it is for', `${who}'s rights by use. A right with several uses counts under each.`, ['Use', 'Rights', 'Acre-feet', 'Share'],
+          uses.map(([k, g]) => [k, fmtInt(g[0]), ac(g[2]), share(g[2])])),
+        mini('Rivers or wells', `${who}'s rights by kind of source.`, ['Kind', 'Rights', 'Acre-feet', 'Share'],
+          kinds.map(([k, g]) => [k, fmtInt(g[0]), ac(g[2]), share(g[2])])),
+        mini(srcs.length > 8 ? 'Largest named sources' : 'Named sources', `${who}'s rights by named source, largest ${Math.min(8, srcs.length)}.`, ['Source', 'Rights', 'Acre-feet', 'Share'],
+          srcs.slice(0, 8).map(([k, g]) => [k, fmtInt(g[0]), ac(g[2]), share(g[2])]))),
+      el('h4', { textContent: `Rights, largest first` }),
+      el('div', { className: 'tablewrap' }, el('table', { className: 'rights' }, el('caption', { className: 'sr-only', textContent: `${who}'s water rights, largest first.` }),
+        el('thead', {}, el('tr', {}, ...['Right', 'Source', 'Uses', 'Priority', 'cfs', 'Acre-feet', 'Owners'].map(h => el('th', { scope: 'col', textContent: h })))),
+        el('tbody', {}, ...rights.map(x => el('tr', {}, el('th', { scope: 'row' }, link(x[1], RIGHT(x[1]))), el('td', { textContent: x[5] || '—' }),
+          el('td', { textContent: x[3] ? x[3].split('').map(u => d.uses[u] || u).join(', ') : '—' }), el('td', { textContent: x[8] || '—' }),
+          el('td', { textContent: ac(x[6]) }), el('td', { textContent: ac(x[7]) }), el('td', { textContent: x[9] > 1 ? `shared (${x[9]})` : 'sole' })))))));
   }
 
   // acre-feet by holder type; click a bar to list that type's holders

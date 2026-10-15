@@ -570,6 +570,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(query_window(*parse_window(urllib.parse.parse_qs(url.query))))
             if url.path == "/api/history":
                 return self.send_json(query_history())
+            if url.path.startswith("/api/detail/"):
+                return self.send_json(query_detail(url.path.rsplit("/", 1)[1]))
             if url.path == "/api/panels":
                 return self.send_json(sorted(f for f in os.listdir(os.path.join(STATIC, "panels")) if f.endswith(".js")))
         except ValueError as e:
@@ -609,6 +611,14 @@ def refresher():
         time.sleep(REFRESH_SEC)
 
 
+def query_detail(name):
+    src = next((s for s in sources.ALL if s.NAME == name and hasattr(s, "detail")), None)
+    if src is None:
+        raise ValueError(f"no detail for {name}")
+    with duckdb.connect(DB_PATH) as con:
+        return src.detail(con)
+
+
 def dump(path, obj):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
@@ -625,6 +635,10 @@ def export(out_dir):
     panels = sorted(f for f in os.listdir(os.path.join(STATIC, "panels")) if f.endswith(".js"))
     dump(os.path.join(data, "panels.json"), panels)
     dump(os.path.join(data, "history.json"), query_history())
+    # per-source extras the page loads on demand (e.g. every right of each water-right holder)
+    for src in sources.ALL:
+        if hasattr(src, "detail"):
+            dump(os.path.join(data, "detail", f"{src.NAME}.json"), query_detail(src.NAME))
     # the page's presets: last 7/30/365/3652 days, plus the rain events it lists (a day either side, capped at today)
     wanted = [(today - dt.timedelta(days=n - 1), today) for n in (7, 30, 365, 3652)]
     first = query_window(*wanted[0])
