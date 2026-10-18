@@ -89,11 +89,13 @@
         row(`${m.name.slice(0, 3)} ${m.y}`, 'now', B.soil_sat_pct, hasRange ? [B.ens_min_pct, B.ens_max_pct] : null),
         row(`Usual ${m.name.slice(0, 3)}`, 'usual', B.usual_pct));
       bars.setAttribute('role', 'img');
-      // on narrow screens the range label can run past the track; put it to the left of the range instead
+      // on narrow screens the range label can run past the track; drop it below the range instead (to its left it hit the value)
       requestAnimationFrame(() => bars.querySelectorAll('.ugs-swb-val').forEach(v => {
+        // measured only when shown; a hidden tab reports 0 widths, so phones always take the lower spot
         const track = v.parentElement.getBoundingClientRect();
-        if (v.getBoundingClientRect().right > track.right && hasRange) {
-          v.style.left = 'auto'; v.style.right = `calc(${100 - (B.ens_min_pct / max) * 100}% + 6px)`;
+        if (hasRange && (matchMedia('(max-width: 599px)').matches || v.getBoundingClientRect().right > track.right)) {
+          v.style.left = `${(B.ens_min_pct / max) * 100}%`; v.style.top = '18px';
+          v.parentElement.style.marginBottom = '18px';
         }
       }));
       bars.setAttribute('aria-label', `Bar chart: soil ${pct(B.soil_sat_pct)} saturated at the end of ${m.name} ${m.y} (solid bar), versus a usual ${pct(B.usual_pct)} (striped bar, the middle value of ${B.years_compared} other years).`
