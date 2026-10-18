@@ -39,12 +39,11 @@
     .rh-legend li { display: inline-flex; gap: 6px; align-items: center; }
     .rh-legend i { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #0c100f; display: inline-block; }
     .rh-table { table-layout: fixed; width: 100%; min-width: 56rem; }
-    .rh-table > thead th:nth-child(1) { width: 2.5rem; } .rh-table > thead th:nth-child(3) { width: 15rem; }
-    .rh-table > thead th:nth-child(n+4):nth-child(-n+7) { width: 6.5rem; } .rh-table > thead th:nth-child(n+8) { width: 6.5rem; }
-    .rh-table > thead th:nth-child(n+8), .rh-table > tbody > tr > td:nth-child(n+8) { text-align: center; }
+    .rh-table > thead th:nth-child(2) { width: 15rem; } .rh-table > thead th:nth-child(n+3) { width: 6.5rem; }
+    .rh-table > thead th:nth-child(n+7), .rh-table > tbody > tr > td:nth-child(n+7) { text-align: center; }
     .rh-table th, .rh-table td { font-size: 13px; overflow-wrap: anywhere; }
-    .rh-table > * > tr > :nth-child(-n+3) { text-align: left; }
-    .rh-table > * > tr > :nth-child(n+4):nth-child(-n+7) { text-align: right; }
+    .rh-table > * > tr > :nth-child(-n+2) { text-align: left; }
+    .rh-table > * > tr > :nth-child(n+3):nth-child(-n+6) { text-align: right; }
     .rh-table tbody th { border-bottom: 1px solid var(--grid-major); font: 500 13px var(--sans); color: var(--ink); text-transform: none; letter-spacing: 0; }
     .rh-table button { font: inherit; font-size: 12px; color: var(--ink); background: none; border: 1px solid var(--ink-2); padding: 2px 8px; min-height: 24px; cursor: pointer; }
     .rh-table button[aria-pressed=true] { background: var(--ink); color: var(--paper); }
@@ -153,7 +152,7 @@
     document.getElementById('rh-th').textContent = rows.length ? `Top ${Math.min(rows.length, 100)} holders by volume in ${place}` : 'No holders match';
     T.replaceChildren(el('div', { className: 'tablewrap' }, el('table', { className: 'rh-table' },
       el('caption', { className: 'sr-only', textContent: `Largest water-right holders in ${place}, by acre-feet a year allowed. Owners on a shared right each count it in full.` }),
-      el('thead', {}, el('tr', {}, ...['#', 'Holder', 'Kind', 'Rights', 'Shared', 'cfs', 'Acre-feet', 'Map', 'Breakdown'].map(h => el('th', { scope: 'col', textContent: h })))),
+      el('thead', {}, el('tr', {}, ...['Holder', 'Kind', 'Rights', 'Shared', 'cfs', 'Acre-feet', 'Map', 'Breakdown'].map(h => el('th', { scope: 'col', textContent: h })))),
       el('tbody', {}, ...rows.slice(0, 100).flatMap((r, i) => {
         const btn = el('button', { type: 'button', textContent: 'Show' });
         btn.setAttribute('aria-pressed', String(FOCUS === r.owner));
@@ -164,7 +163,7 @@
         more.setAttribute('aria-expanded', String(OPEN.has(r.owner)));
         more.setAttribute('aria-controls', id);
         more.setAttribute('aria-label', `Breakdown of ${nice(r.owner)}'s rights`);
-        const extra = el('tr', { id, hidden: !OPEN.has(r.owner), className: 'detail-row' }, el('td', { className: 'rh-more', colSpan: 9 }));
+        const extra = el('tr', { id, hidden: !OPEN.has(r.owner), className: 'detail-row' }, el('td', { className: 'rh-more', colSpan: 8 }));
         more.addEventListener('click', () => {
           const on = !OPEN.has(r.owner);
           on ? OPEN.add(r.owner) : OPEN.delete(r.owner);
@@ -173,7 +172,7 @@
           if (on) breakdown(extra.firstChild, r, d);
         });
         if (OPEN.has(r.owner)) breakdown(extra.firstChild, r, d);
-        return [el('tr', {}, el('td', { textContent: i + 1 }), el('th', { scope: 'row', textContent: nice(r.owner) }),
+        return [el('tr', {}, el('th', { scope: 'row', textContent: `${i + 1}. ${nice(r.owner)}` }),
           el('td', { textContent: d.holder_kinds?.[r.kind] ?? (r.org ? 'Organization' : 'Person or trust') }), el('td', { textContent: fmtInt(r.n) }),
           el('td', { textContent: r.shared ? fmtInt(r.shared) : '—' }), el('td', { textContent: ac(r.cfs) }), el('td', { textContent: ac(r.acft) }), el('td', {}, btn), el('td', {}, more)), extra];
       })))));
@@ -251,17 +250,22 @@
     o.aria.decal = { show: false };
     o.aria.label = { enabled: true, description: `Bar chart of water rights by kind of holder in ${place}, ${af(total)} acre-feet a year in all. `
       + order.map(i => `${K[i]}: ${af(t[i][2])} acre-feet, ${pct(t[i][2])}, ${fmtInt(t[i][0])} holders.`).join(' ') };
-    o.grid = { left: 8, right: 120, top: 8, bottom: 8, containLabel: true };
+    // narrow screens: each name sits above its bar instead of beside it
+    const narrow = document.getElementById('rh-chart').clientWidth < 560;
+    document.getElementById('rh-chart').style.height = `${order.length * (narrow ? 46 : 33) + 16}px`;
+    o.grid = narrow ? { left: 0, right: 112, top: 18, bottom: 4, containLabel: false } : { left: 8, right: 120, top: 8, bottom: 8, containLabel: true };
     o.xAxis = { type: 'value', show: false };
     o.yAxis = { type: 'category', inverse: true, data: order.map(i => K[i]), axisLine: { show: false }, axisTick: { show: false },
-      axisLabel: { color: ink, fontSize: 13, width: 230, overflow: 'break' } };
+      axisLabel: narrow ? { inside: true, align: 'left', verticalAlign: 'bottom', padding: [0, 0, 14, 0], color: ink, fontSize: 13, fontFamily: css('--sans') }
+        : { color: ink, fontSize: 13, width: 230, overflow: 'break' } };
     o.tooltip = { ...o.tooltip, trigger: 'item', formatter: (p) => { const r = t[order[p.dataIndex]];
       return `<b>${K[order[p.dataIndex]]}</b><br>${ac(r[2])} acre-feet a year (${pct(r[2])})<br>${fmtInt(r[0])} holders · ${fmtInt(r[1])} rights`; } };
-    o.series = [{ type: 'bar', barMaxWidth: 22, cursor: 'pointer',
+    o.series = [{ type: 'bar', barMaxWidth: narrow ? 14 : 22, cursor: 'pointer',
       data: order.map(i => ({ value: Math.round(t[i][2]), itemStyle: { color: sel == null || sel === i ? css('--hydro') : css('--off') } })),
       label: { show: true, position: 'right', color: ink2, fontSize: 12, formatter: (p) => `${af(p.value)} · ${pct(p.value)}` },
       itemStyle: { borderColor: paper, borderWidth: 0.5 } }];
     const ch = G.chart('rh-chart');
+    ch.resize();
     ch.setOption(o, true);
     ch.off('click');
     ch.on('click', (p) => {

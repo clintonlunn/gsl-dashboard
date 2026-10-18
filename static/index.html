@@ -136,6 +136,32 @@ button[disabled] { opacity: .65; cursor: progress; }
 /* phones: tabs take their own row under the title and scroll sideways rather than wrap */
 @media (max-width: 899px) { .tabs { order: 3; flex: 1 0 100%; overflow-x: auto; scrollbar-width: none; } .tabs [role="tab"] { white-space: nowrap; } }
 /* phones: short tab names so all four fit, and the update time shares a row with the buttons */
+/* phones: cells wrap; wide tables (5+ columns, .stack) turn into one labelled card per row */
+@media (max-width: 599px) {
+  /* panels set nowrap on their own cells; on a phone wrapping beats sideways scrolling */
+  th, td { white-space: normal !important; padding: 6px 8px; }
+  /* screen-reader tables ignore their 1px width and would widen the page */
+  main { overflow-x: clip; }
+  thead th { vertical-align: bottom; }
+  .panel select { max-width: calc(100% - 8px); min-width: 0; }
+  .panel label:has(select) { max-width: 100%; min-width: 0; flex-wrap: wrap; }
+  table.stack { min-width: 0 !important; table-layout: auto !important; }
+  table.stack, table.stack > tbody, table.stack > tfoot, table.stack > * > tr { display: block; width: auto; }
+  table.stack > thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table.stack > * > tr { padding: 8px 0; border-bottom: 1px solid var(--grid-major); }
+  table.stack > * > tr > * { display: grid; grid-template-columns: minmax(7.5rem, 42%) 1fr; gap: 10px; align-items: baseline;
+    border: 0; padding: 2px 0 !important; text-align: left !important; white-space: normal !important; width: auto !important; min-width: 0 !important; }
+  table.stack > * > tr > *::before { content: attr(data-label); font: 12.5px/1.4 var(--sans); color: var(--ink-2); }
+  table.stack > * > tr > :first-child { display: block; padding-bottom: 4px !important; font: 600 14px/1.4 var(--sans); color: var(--ink); }
+  table.stack > * > tr > :first-child::before, table.stack > * > tr > [data-label=""]::before, table.stack > * > tr > [colspan]::before { content: none; }
+  table.stack > * > tr > [data-label=""], table.stack > * > tr > [colspan] { display: block; }
+  table.stack > * > tr.detail-row > * { display: block; }
+  table.stack [hidden] { display: none !important; }
+  table.stack > caption { display: block; }
+  table.stack button { justify-self: start; }
+  /* short numbers with units ("+1.93 in", "282 mg/L") stay on one line */
+  table:not(.stack) .nw { white-space: nowrap !important; }
+}
 @media (max-width: 599px) { .tab-more { display: none; } .tabs [role="tab"] { padding-inline: 9px; } header .bar { flex: 1 0 100%; padding-top: 0; } #asof { flex: 1; font-size: .8125rem; } }
 .tabs [role="tab"] { border: 0; border-bottom: 3px solid transparent; background: none; color: var(--ink-2); font: 600 .9375rem var(--sans); padding: 10px 16px 8px; min-height: 44px; }
 .tabs [role="tab"]:hover { color: var(--ink); background: none; }
@@ -421,9 +447,41 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
 
   // ---------------------------------------------------------------- echarts
   const charts = {};
+  // a top-left legend wraps on narrow charts; push the plot down by the extra rows so the legend doesn't sit on it
+  const measure = document.createElement('canvas').getContext('2d');
+  function fitLegend(opt, width) {
+    const L = opt.legend;
+    if (!L || Array.isArray(L) || L.show === false || L.type === 'scroll' || L.orient === 'vertical' || !opt.grid || typeof opt.grid.top !== 'number') return opt;
+    const names = (L.data || [].concat(opt.series || []).map(x => x?.name)).map(n => typeof n === 'object' ? n?.name : n).filter(Boolean);
+    const fs = L.textStyle?.fontSize || 12;
+    measure.font = `${fs}px "IBM Plex Mono", monospace`;
+    const gap = L.itemGap ?? 10, icon = (L.itemWidth ?? 25) + 5, avail = width - (typeof L.left === 'number' ? L.left : 0) - 8;
+    let rows = 1, x = 0;
+    for (const n of new Set(names)) {
+      const w = icon + measure.measureText(String(n)).width;
+      if (x && x + w > avail) { rows++; x = 0; }
+      x += w + gap;
+    }
+    if (rows > 1) opt.grid = { ...opt.grid, top: opt.grid.top + (rows - 1) * (Math.max(L.itemHeight ?? 14, fs * 1.3) + gap) };
+    return opt;
+  }
+  // containLabel sizes the axes with the axis label's own font, not the global textStyle, so labels drawn in Plex Mono
+  // overran the edge; name the font on every axis label
+  function axisFonts(opt) {
+    for (const k of ['xAxis', 'yAxis']) {
+      if (!opt[k]) continue;
+      const axes = [].concat(opt[k]).map(a => a && a.axisLabel?.fontFamily == null ? { ...a, axisLabel: { ...(a.axisLabel || {}), fontFamily: opt.textStyle?.fontFamily || 'IBM Plex Mono' } } : a);
+      opt[k] = Array.isArray(opt[k]) ? axes : axes[0];
+    }
+    return opt;
+  }
   function chart(id) {
     const node = document.getElementById(id);
-    if (!charts[id]) charts[id] = echarts.init(node, null, { renderer: 'svg' });
+    if (!charts[id]) {
+      const inst = charts[id] = echarts.init(node, null, { renderer: 'svg' });
+      const set = inst.setOption.bind(inst);
+      inst.setOption = (opt, ...rest) => set(opt ? fitLegend(axisFonts(opt), node.clientWidth || inst.getWidth()) : opt, ...rest);
+    }
     return charts[id];
   }
   function emptyChart(id, text) {
@@ -471,7 +529,11 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
     o.aria.label = { enabled: true, description: `Rain at ${rows.length} stations, from ${rows[rows.length - 1].total_in.toFixed(2)} to ${rows[0].total_in.toFixed(2)} inches. ${counted} lowland stations count toward the lake estimate${median != null ? `; their middle value is ${median.toFixed(2)} inches` : ''}. A table of every station follows.` };
     o.tooltip = { ...o.tooltip, trigger: 'item', formatter: (p) => { const r = rows[p.dataIndex]; return `${r.station}<br>${r.total_in.toFixed(2)} in · ${r.elev_ft == null ? '' : fmtInt(r.elev_ft) + ' ft'}<br>${r.counted ? 'Counted' : 'Not counted'}`; } };
     o.xAxis = { type: 'value', axisLabel: { color: css('--ink-2'), formatter: (v) => `${v} in` }, splitLine: { lineStyle: { color: css('--grid-major') } } };
-    o.yAxis = { type: 'category', inverse: true, data: rows.map(r => r.station), axisLabel: { color: css('--ink-2'), fontSize: 12 }, axisTick: { show: false }, axisLine: { lineStyle: { color: css('--rule') } } };
+    // value labels sit right of the bars; on a phone long station names are cut short (the tooltip and table have them whole)
+    o.grid = { ...o.grid, right: 44 };
+    const narrow = node.clientWidth < 560;
+    o.yAxis = { type: 'category', inverse: true, data: rows.map(r => r.station), axisTick: { show: false }, axisLine: { lineStyle: { color: css('--rule') } },
+      axisLabel: { color: css('--ink-2'), fontSize: 12, ...(narrow ? { width: 140, overflow: 'truncate' } : {}) } };
     o.series = [{ type: 'bar', barMaxWidth: 16, label: { show: true, position: 'right', color: css('--ink'), formatter: (p) => p.value.toFixed(2) },
       data: rows.map(r => ({ value: r.total_in, itemStyle: r.counted ? { color: css('--pen') }
         : { color: 'transparent', borderColor: css('--off'), borderWidth: 1.5, decal: { symbol: 'rect', symbolSize: 1, dashArrayX: [1, 0], dashArrayY: [2, 3], rotation: Math.PI / 4, color: css('--off') } } })),
@@ -751,7 +813,9 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
       const x = (v) => `${(v - a) / (z - a) * 100}%`;
       const at = (cls, v, extra = {}) => { const e = el('span', { className: cls, ...extra }); e.style.left = x(v); return e; };
       const band = at('band', lo); band.style.width = `${(hi - lo) / (z - a) * 100}%`;
-      const ticks = []; for (let v = Math.ceil(a / 2) * 2; v <= z; v += 2) ticks.push(at('tick', v), at('tick-l', v, { textContent: fmtInt(v) }));
+      // a label like "4,190" needs about 48px; widen the tick step until they fit the ruler
+      const room = (ruler.clientWidth || 600) / 48, step = [2, 4, 5, 10, 20].find(st => (z - a) / st <= room) || 20;
+      const ticks = []; for (let v = Math.ceil(a / step) * step; v <= z; v += step) ticks.push(at('tick', v), at('tick-l', v, { textContent: fmtInt(v) }));
       ruler.replaceChildren(el('span', { className: 'axis' }), band, at('band-l', (lo + hi) / 2, { textContent: 'Healthy' }), ...ticks,
         at('low', low), at('low-l', low, { textContent: 'Record low' }), at('now', level), at('now-l', level, { textContent: `Now ${fmt1(level)} ft` }));
       ruler.setAttribute('aria-label', `The lake is at ${fmt1(level)} feet. The healthy range is ${lo} to ${hi} feet. The record low is ${low} feet.`);
@@ -877,8 +941,48 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
       table.__more = btn;
     }
   }
+  // tables of 5+ columns get .stack: on phones the CSS shows each row as a card, labelling every value with its column.
+  // display: block drops table semantics in some browsers, so the roles are set explicitly.
+  const PHONE = matchMedia('(max-width: 599px)');
+  PHONE.addEventListener('change', () => stackTables());
+  function stackTables() {
+    for (const table of document.querySelectorAll('main table')) {
+      if (table.closest('.sr-only')) continue;
+      for (const r of table.rows) {
+        if (r.__nw) continue;
+        r.__nw = true;
+        for (const c of r.cells) { const t = c.textContent.trim(); if (t.length <= 16 && /\d/.test(t) && !c.querySelector('table')) c.classList.add('nw'); }
+      }
+      if (!table.tHead) continue;
+      const head = [...table.tHead.rows].at(-1), labels = [];
+      for (const c of head?.cells || []) for (let k = 0; k < (c.colSpan || 1); k++) labels.push(c.textContent.trim());
+      // 5+ columns always; fewer only when the table still doesn't fit a phone after wrapping
+      const tooWide = PHONE.matches && table.offsetWidth > (table.parentElement?.clientWidth ?? innerWidth) + 2;
+      if (labels.length < 5 && !tooWide) continue;
+      if (!table.classList.contains('stack')) {
+        table.classList.add('stack');
+        table.setAttribute('role', 'table');
+        for (const c of head.cells) c.setAttribute('role', 'columnheader');
+        for (const r of table.tHead.rows) r.setAttribute('role', 'row');
+      }
+      for (const body of [...table.tBodies, table.tFoot].filter(Boolean)) {
+        body.setAttribute('role', 'rowgroup');
+        for (const r of body.rows) {
+          if (r.__stacked) continue;
+          r.__stacked = true;
+          r.setAttribute('role', 'row');
+          let i = 0;
+          for (const c of r.cells) {
+            if (c.dataset.label == null) c.dataset.label = (c.colSpan || 1) > 1 ? '' : labels[i] ?? '';
+            c.setAttribute('role', c.tagName === 'TH' ? 'rowheader' : 'cell');
+            i += c.colSpan || 1;
+          }
+        }
+      }
+    }
+  }
   let shortenQueued = false;
-  new MutationObserver(() => { if (!shortenQueued) { shortenQueued = true; requestAnimationFrame(() => { shortenQueued = false; shortenTables(); }); } })
+  new MutationObserver(() => { if (!shortenQueued) { shortenQueued = true; requestAnimationFrame(() => { shortenQueued = false; shortenTables(); stackTables(); }); } })
     .observe(document.querySelector('main'), { childList: true, subtree: true });
   const DETAIL = {};
   window.GSL = {
@@ -937,6 +1041,9 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
   form.addEventListener('submit', (e) => { e.preventDefault(); load().catch(showError); });
 
   const status = document.getElementById('status');
+  // charts measure label widths once (and cache them), so draw only after the web fonts arrive or labels clip; give up after 3 s
+  const FONTS = Promise.race([Promise.all(['12px "IBM Plex Mono"', '500 12px "IBM Plex Mono"', '13px "IBM Plex Sans"'].map(f => document.fonts.load(f))),
+    new Promise(r => setTimeout(r, 3000))]).catch(() => {});
   async function load() {
     const q = new URLSearchParams({ from: fromIn.value, to: toIn.value });
     history.replaceState(null, '', `?${q}${location.hash}`);
@@ -944,6 +1051,7 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
     document.getElementById('answer-h').textContent = 'Loading…';
     const r = await api.data(fromIn.value, toIn.value); const j = await r.json();
     if (!r.ok) throw new Error(j.error || r.statusText);
+    await FONTS;
     DATA = j; addEventPresets(j.events); render();
     status.textContent = `Showing ${windowText(j.window).when}.`;
   }
@@ -973,6 +1081,7 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
     if (focus) tab.focus();
     const name = tab.id.replace('tab-', '');
     history.replaceState(null, '', `${location.search}${name === 'glance' ? '' : '#' + name}`);
+    requestAnimationFrame(stackTables); // tables in a tab that was hidden couldn't be measured
     if (name === 'history') loadHistory().then(() => { drawHistory(); Object.values(charts).forEach(c => c.resize()); });
     if (name === 'details') render();
     if (name === 'ag') renderPanels('ag');
