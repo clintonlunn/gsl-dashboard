@@ -34,7 +34,7 @@ function renderLedger(D, { rainAf, riverAf, rain, size, lake, wt }) {
     row('Held back in reservoirs', res ? `${res.pct_full}% full; ${res.change_af >= 0 ? `gained ${fmtInt(res.change_af)}` : `released ${fmtInt(-res.change_af)}`} acre-ft` : 'not available for this period', res ? -res.change_af : null, 'sub'),
   ];
   const tbl = el('table', {}, el('caption', { textContent: `Acre-feet for ${wt.when}. Lake depth spreads each amount over the lake's surface; minus means water that left or never arrived.` }),
-    el('thead', {}, el('tr', {}, el('th', { scope: 'col', textContent: '' }), el('th', { scope: 'col' }, el('span', { className: 'sr-only', textContent: 'Bar' })), el('th', { scope: 'col', textContent: 'Acre-ft' }), el('th', { scope: 'col', textContent: 'Lake depth' }))),
+    el('thead', {}, el('tr', {}, el('th', { scope: 'col' }, el('span', { className: 'sr-only', textContent: 'Water' })), el('th', { scope: 'col' }, el('span', { className: 'sr-only', textContent: 'Bar' })), el('th', { scope: 'col', textContent: 'Acre-ft' }), el('th', { scope: 'col', textContent: 'Lake depth' }))),
     el('tbody', {}, ...rows));
   document.getElementById('ledger').replaceChildren(el('div', { className: 'tablewrap' }, tbl));
   const lead = document.getElementById('ledger-lead');
