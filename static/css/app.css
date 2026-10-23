@@ -200,11 +200,13 @@ button[disabled] { opacity: .65; cursor: progress; }
 .card .more::after { content: " →"; }
 .map-toggles { display: flex; flex-wrap: wrap; gap: 0 18px; }
 .map-toggles label { display: inline-flex; gap: 6px; align-items: center; min-height: 24px; margin: 6px 0 0; }
-.radar-loop { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+.radar-loop { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-top: 6px; }
 .radar-loop[hidden] { display: none; }
-.radar-loop button { min-height: 32px; font-size: .8125rem; flex: none; }
+/* sized for the longer label so Play/Pause doesn't change width */
+.radar-loop button { min-height: 32px; font-size: .8125rem; flex: none; width: 4.75rem; text-align: center; }
 .radar-loop select { min-height: 32px; font-size: .8125rem; flex: none; max-width: 9.5rem; }
-.radar-loop input { flex: 1; min-width: 0; accent-color: var(--pen); min-height: 24px; }
+/* the slider gets its own full-width line */
+.radar-loop input { flex: 1 0 100%; min-width: 0; margin: 0; accent-color: var(--pen); min-height: 24px; }
 .howto { margin-top: 8px; font-size: .8125rem; color: var(--ink-2); }
 .howto summary { cursor: pointer; min-height: 24px; }
 .howto .note { margin: 6px 0 0; }
