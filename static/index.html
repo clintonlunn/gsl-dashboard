@@ -50,6 +50,7 @@ button[disabled] { opacity: .65; cursor: progress; }
 .period { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; padding: 14px 0; border-bottom: 1px solid var(--grid-major); }
 .period label { display: grid; gap: 2px; font-size: .8125rem; color: var(--ink-2); }
 .period select { max-width: 100%; }
+.period [hidden] { display: none !important; }
 
 .answer { padding: 24px 0; border-bottom: 1px solid var(--rule); }
 .answer .when { font: 500 .875rem var(--mono); color: var(--ink-2); margin: 0 0 6px; }
@@ -61,6 +62,7 @@ button[disabled] { opacity: .65; cursor: progress; }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); border-bottom: 1px solid var(--rule); }
 .fact { padding: 18px 20px 20px; border-left: 1px solid var(--grid-major); min-width: 0; }
 .fact:first-child { border-left: 0; padding-left: 0; }
+#panels-glance .fact { border-left: 0; padding-inline: 0; }
 #panels-water { grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); row-gap: 8px; }
 .fact h2, .section h2 { font: 600 1.05rem/1.3 var(--sans); margin: 0; }
 .fact .lead { margin: 4px 0 12px; color: var(--ink-2); font-size: .95rem; }
@@ -279,8 +281,10 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
         <h2>How far from healthy</h2>
         <p class="lead" id="health-lead">—</p>
         <div class="ruler" id="ruler" role="img"></div>
-        <p class="src">"Healthy" is the range where the state's lake-level matrix rates brine shrimp, birds, wetlands, air quality from dust, and lake industries as being in good shape. Below it, exposed lakebed and rising salinity start to harm them.</p>
-        <p class="src" id="src-health"></p>
+        <details class="howto"><summary>What "healthy" means, and sources</summary>
+          <p class="note">"Healthy" is the range where the state's lake-level matrix rates brine shrimp, birds, wetlands, air quality from dust, and lake industries as being in good shape. Below it, exposed lakebed and rising salinity start to harm them.</p>
+          <p class="src" id="src-health"></p>
+        </details>
       </div>
     </section>
 
@@ -659,11 +663,13 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
       const bounds = [[Math.min(...core.map(s => s.lon)) - padDeg, Math.min(...core.map(s => s.lat)) - padDeg], [Math.max(...core.map(s => s.lon)) + padDeg, Math.max(...core.map(s => s.lat)) + padDeg]];
       MAP = new maplibregl.Map({
         container: holder, bounds, fitBoundsOptions: { padding: 30 }, maxZoom: 14, minZoom: 6, dragRotate: false, pitchWithRotate: false,
-        cooperativeGestures: true, attributionControl: { compact: false },
+        cooperativeGestures: true, attributionControl: { compact: matchMedia('(max-width: 599px)').matches },
         style: { version: 8, glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf', sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': css('--grid') } }] },
       });
       MAP.touchZoomRotate.disableRotation();
       MAP.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+      // compact credits open on load; keep them folded behind the (i) so they don't cover a phone-sized map
+      MAP.once('idle', () => holder.querySelector('.maplibregl-compact-show')?.classList.remove('maplibregl-compact-show'));
       MAP.getCanvas().setAttribute('aria-label', 'Satellite map of the gauges. The same gauges are listed for screen readers after the map.');
       MAP.on('click', 'gauges', (e) => {
         const p = e.features[0].properties;
@@ -835,7 +841,7 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
     } else if (lake?.change_in != null) {
       const c = lake.change_in, steady = Math.abs(c) < 0.5;
       h.replaceChildren(`${wt.lead}, the Great Salt Lake ${steady ? 'held about steady' : c > 0 ? 'rose' : 'fell'}`, ...(steady ? ['.'] : [' about ', num(changeWords(c)), '.']));
-      p.replaceChildren(rain ? `Rain on the lake (${rainIn.toFixed(1)} in) and rivers brought in about ` : 'Rivers brought in about ', b(`${pretty(gallons)} gallons`), `, while evaporation takes water out${c < 0 ? ', and it took out more' : ''}. `);
+      p.replaceChildren(rain && rainIn >= 0.05 ? `Rain on the lake (${rainIn.toFixed(1)} in) and rivers brought in about ` : 'Rivers brought in about ', b(`${pretty(gallons)} gallons`), `, while evaporation takes water out${c < 0 ? ', and it took out more' : ''}. `);
     } else {
       h.replaceChildren(`${wt.lead}, there aren't enough lake readings to say how the level changed.`);
       p.replaceChildren();
