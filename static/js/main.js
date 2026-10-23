@@ -104,4 +104,13 @@ btn.addEventListener('click', async () => {
 let resizeTimer;
 new ResizeObserver(() => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => Object.values(charts).forEach(c => c.resize()), 120); }).observe(document.querySelector('.wrap'));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { render(); drawHistory(); });
-setInterval(() => load().catch(() => {}), 15 * 60 * 1000);
+if (!STATIC) setInterval(() => load().catch(() => {}), 15 * 60 * 1000);
+// the published copy's data files belong to one build; when a newer one is out, reload on coming back to the tab
+// (the tab is kept in the link) rather than under someone who is reading
+else document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible') return;
+  try {
+    const m = await fetch(`data/manifest.json?t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json());
+    if (m.built_at && m.built_at !== STATIC.built_at) location.reload();
+  } catch { /* stay on this build */ }
+});

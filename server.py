@@ -653,9 +653,20 @@ def export(out_dir):
         windows.append({"from": a.isoformat(), "to": b.isoformat(), "file": rel})
         print(f"exported {rel}", flush=True)
     manifest = {"today": today.isoformat(), "built_at": dt.datetime.now().isoformat(timespec="minutes"), "windows": windows}
+    dump(os.path.join(data, "manifest.json"), {"built_at": manifest["built_at"]})  # open pages poll this for a newer build
+    # Pages caches files for 10 minutes, so a new page could load last build's modules; tie every module, import and
+    # the stylesheet to this build
+    ver = "?v=" + urllib.parse.quote(manifest["built_at"])
+    for name in os.listdir(os.path.join(out_dir, "js")):
+        path = os.path.join(out_dir, "js", name)
+        with open(path) as f:
+            code = f.read()
+        with open(path, "w") as f:
+            f.write(re.sub(r"""(from\s+'\./[\w-]+\.js)'""", lambda m: f"{m.group(1)}{ver}'", code))
     index = os.path.join(out_dir, "index.html")
     with open(index) as f:
         html = f.read()
+    html = html.replace('src="js/main.js"', f'src="js/main.js{ver}"').replace('href="css/app.css"', f'href="css/app.css{ver}"')
     tag = f"<script>window.GSL_STATIC = {json.dumps(manifest)};</script>"
     with open(index, "w") as f:
         f.write(html.replace("</head>", f"{tag}\n</head>", 1))
