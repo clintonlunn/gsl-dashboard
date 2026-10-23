@@ -203,6 +203,7 @@ button[disabled] { opacity: .65; cursor: progress; }
 .radar-loop { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
 .radar-loop[hidden] { display: none; }
 .radar-loop button { min-height: 32px; font-size: .8125rem; flex: none; }
+.radar-loop select { min-height: 32px; font-size: .8125rem; flex: none; max-width: 9.5rem; }
 .radar-loop input { flex: 1; min-width: 0; accent-color: var(--pen); min-height: 24px; }
 .howto { margin-top: 8px; font-size: .8125rem; color: var(--ink-2); }
 .howto summary { cursor: pointer; min-height: 24px; }

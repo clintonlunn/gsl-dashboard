@@ -102,34 +102,40 @@ function drawWetlands() {
 document.getElementById('show-wetlands').addEventListener('change', drawWetlands);
 
 // live radar: NWS NEXRAD mosaic tiles from the Iowa Environmental Mesonet, swapped for a new frame every 5 minutes.
-// The loop plays the last 3 hours in 10-minute steps; each past frame is its own layer, faded in and out so tiles stay loaded.
+// The loop plays the last 3, 12 or 24 hours; each past frame is its own layer, faded in and out so tiles stay loaded.
 const RADAR_TILES = 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png';
 const RADAR_PAST = (t) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::USCOMP-N0Q-${t}/{z}/{x}/{y}.png`;
 const RADAR_META = 'https://mesonet.agron.iastate.edu/data/gis/images/4326/USCOMP/n0q_0.json';
-const RADAR_OPACITY = .6, LOOP_STEPS = 18, LOOP_MIN = 10;
+const RADAR_OPACITY = .6;
+// hours -> frame count and minutes between frames; longer loops take bigger steps so a phone loads at most ~48 frames
+const SPANS = { 3: { steps: 18, min: 10 }, 12: { steps: 24, min: 30 }, 24: { steps: 48, min: 30 } };
+let LOOP_STEPS = 18, LOOP_MIN = 10;
 const utcStamp = (d) => `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}`;
 const clock = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-const loopBtn = document.getElementById('radar-play'), loopSlider = document.getElementById('radar-slider');
+// long loops reach back into yesterday, so name the day for frames that aren't from today
+const frameClock = (d) => d.toDateString() === new Date().toDateString() ? clock(d) : `${d.toLocaleDateString('en-US', { weekday: 'short' })} ${clock(d)}`;
+const loopBtn = document.getElementById('radar-play'), loopSlider = document.getElementById('radar-slider'), loopSpan = document.getElementById('radar-span');
 let radarTimer = null, radarValid = '', loopBuiltFor = '', loopTimer = null;
 const frameTime = (i) => new Date(new Date(radarValid).getTime() - (LOOP_STEPS - i) * LOOP_MIN * 60000);
 const frameLayers = () => MAP ? MAP.getStyle().layers.filter(l => l.id.startsWith('radar')).map(l => l.id) : [];
 function showFrame(i) {
   loopSlider.value = i;
   const t = frameTime(i), latest = i === LOOP_STEPS;
-  loopSlider.setAttribute('aria-valuetext', `${clock(t)}${latest ? ', latest' : ''}`);
-  document.getElementById('radar-time').textContent = radarValid ? `(${clock(t)}${latest ? '' : ', replay'})` : '';
+  loopSlider.setAttribute('aria-valuetext', `${frameClock(t)}${latest ? ', latest' : ''}`);
+  document.getElementById('radar-time').textContent = radarValid ? `(${frameClock(t)}${latest ? '' : ', replay'})` : '';
   for (const id of frameLayers()) MAP.setPaintProperty(id, 'raster-opacity', id === (latest ? 'radar' : `radar-${i}`) ? RADAR_OPACITY : 0);
 }
 function buildLoop() {
-  if (loopBuiltFor === radarValid || !MAP?.getLayer('radar')) return;
+  const key = `${radarValid}|${loopSpan.value}`;
+  if (loopBuiltFor === key || !MAP?.getLayer('radar')) return;
   for (const id of frameLayers()) if (id !== 'radar') { MAP.removeLayer(id); MAP.removeSource(id); }
   for (let i = 0; i < LOOP_STEPS; i++) {
     MAP.addSource(`radar-${i}`, { type: 'raster', tiles: [RADAR_PAST(utcStamp(frameTime(i)))], tileSize: 256, maxzoom: 11 });
     MAP.addLayer({ id: `radar-${i}`, type: 'raster', source: `radar-${i}`, paint: { 'raster-opacity': 0, 'raster-opacity-transition': { duration: 0 }, 'raster-fade-duration': 0 } }, 'radar');
   }
-  loopBuiltFor = radarValid;
+  loopBuiltFor = key;
 }
-function stopLoop() { clearInterval(loopTimer); loopTimer = null; loopBtn.setAttribute('aria-pressed', 'false'); loopBtn.textContent = 'Play last 3 hours'; }
+function stopLoop() { clearInterval(loopTimer); loopTimer = null; loopBtn.setAttribute('aria-pressed', 'false'); loopBtn.textContent = 'Play'; }
 function playLoop() {
   buildLoop();
   if (+loopSlider.value >= LOOP_STEPS) showFrame(0);
@@ -139,10 +145,19 @@ function playLoop() {
     const i = +loopSlider.value;
     if (i < LOOP_STEPS) return showFrame(i + 1);
     if (++hold > 3) { hold = 0; showFrame(0); } // linger on the latest frame before starting over
-  }, 500);
+  }, Math.max(200, 9000 / LOOP_STEPS)); // about 9 s a pass whatever the length
 }
 loopBtn.addEventListener('click', () => loopTimer ? stopLoop() : playLoop());
 loopSlider.addEventListener('input', () => { stopLoop(); buildLoop(); showFrame(+loopSlider.value); });
+loopSpan.addEventListener('change', () => {
+  const playing = !!loopTimer, sp = SPANS[loopSpan.value];
+  stopLoop();
+  LOOP_STEPS = sp.steps; LOOP_MIN = sp.min;
+  loopSlider.max = LOOP_STEPS;
+  loopSlider.setAttribute('aria-label', `Radar time, last ${loopSpan.value} hours in ${LOOP_MIN}-minute steps`);
+  if (MAP?.getLayer('radar')) showFrame(LOOP_STEPS);
+  if (playing) playLoop();
+});
 async function drawRadar() {
   const on = document.getElementById('show-radar').checked;
   clearTimeout(radarTimer);

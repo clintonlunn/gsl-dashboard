@@ -84,14 +84,15 @@
           <label class="src" for="show-wetlands"><input type="checkbox" id="show-wetlands"> UGS wetland survey sites</label>
         </div>
         <div class="radar-loop" id="radar-loop">
-          <button type="button" id="radar-play" aria-pressed="false">Play last 3 hours</button>
+          <button type="button" id="radar-play" aria-pressed="false">Play</button>
+          <select id="radar-span" aria-label="Radar loop length"><option value="3">Last 3 hours</option><option value="12">Last 12 hours</option><option value="24">Last 24 hours</option></select>
           <input type="range" id="radar-slider" min="0" max="18" step="1" value="18" aria-label="Radar time, last 3 hours in 10-minute steps">
         </div>
         <details class="howto"><summary>How to read the map, and sources</summary>
           <p class="note">Dots are USGS gauges: black ones had readings for this period, white ones had none, and the orange one measures the lake's water level. Green dots are UGS wetland survey sites: reference-quality sites are solid, others hollow. Names hide when they would overlap; zoom in to see more. Select a dot for its numbers. Use two fingers or Ctrl + scroll to zoom.</p>
           <p class="src" id="imagery-note"></p>
           <p class="src" id="src-map"></p>
-          <p class="src">Radar: National Weather Service NEXRAD base reflectivity, a mosaic of every US radar updated every 5 minutes (Play steps through the last 3 hours, 10 minutes at a time), from the <a href="https://mesonet.agron.iastate.edu/ogc/">Iowa Environmental Mesonet</a>. Brighter colors mean heavier rain or snow; it shows what is falling now, not how much has fallen. Mountains block the lowest beams, so light rain in some valleys can be missed.</p>
+          <p class="src">Radar: National Weather Service NEXRAD base reflectivity, a mosaic of every US radar updated every 5 minutes (Play steps through the last 3 hours in 10-minute frames, or 12 or 24 hours in 30-minute frames), from the <a href="https://mesonet.agron.iastate.edu/ogc/">Iowa Environmental Mesonet</a>. Brighter colors mean heavier rain or snow; it shows what is falling now, not how much has fallen. Mountains block the lowest beams, so light rain in some valleys can be missed.</p>
         </details>
         <ul class="sr-only" id="map-list" aria-label="Gauges on the map"></ul>
       </section>
