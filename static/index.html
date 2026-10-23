@@ -198,6 +198,8 @@ button[disabled] { opacity: .65; cursor: progress; }
 .card .sub { font-size: .8125rem; color: var(--ink-2); flex: 1; }
 .card .more { font-size: .8125rem; text-decoration: underline; margin-top: 4px; }
 .card .more::after { content: " →"; }
+.map-toggles { display: flex; flex-wrap: wrap; gap: 0 18px; }
+.map-toggles label { display: inline-flex; gap: 6px; align-items: center; min-height: 24px; margin: 6px 0 0; }
 .howto { margin-top: 8px; font-size: .8125rem; color: var(--ink-2); }
 .howto summary { cursor: pointer; min-height: 24px; }
 .howto .note { margin: 6px 0 0; }
@@ -292,11 +294,15 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
       <section class="section" aria-labelledby="map-h">
         <h2 id="map-h">Where we measure</h2>
         <div id="map" class="map"></div>
-        <label class="src" for="show-wetlands"><input type="checkbox" id="show-wetlands"> Show UGS wetland survey sites</label>
+        <div class="map-toggles">
+          <label class="src" for="show-radar"><input type="checkbox" id="show-radar" checked> Live rain radar <span id="radar-time"></span></label>
+          <label class="src" for="show-wetlands"><input type="checkbox" id="show-wetlands"> UGS wetland survey sites</label>
+        </div>
         <details class="howto"><summary>How to read the map, and sources</summary>
           <p class="note">Dots are USGS gauges: black ones had readings for this period, white ones had none, and the orange one measures the lake's water level. Green dots are UGS wetland survey sites: reference-quality sites are solid, others hollow. Names hide when they would overlap; zoom in to see more. Select a dot for its numbers. Use two fingers or Ctrl + scroll to zoom.</p>
           <p class="src" id="imagery-note"></p>
           <p class="src" id="src-map"></p>
+          <p class="src">Radar: National Weather Service NEXRAD base reflectivity, a mosaic of every US radar updated every 5 minutes, from the <a href="https://mesonet.agron.iastate.edu/ogc/">Iowa Environmental Mesonet</a>. Brighter colors mean heavier rain or snow; it shows what is falling now, not how much has fallen. Mountains block the lowest beams, so light rain in some valleys can be missed.</p>
         </details>
         <ul class="sr-only" id="map-list" aria-label="Gauges on the map"></ul>
       </section>
@@ -712,7 +718,7 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
         paint: { 'text-color': '#ffffff', 'text-halo-color': '#0c100f', 'text-halo-width': 2, 'text-halo-blur': .5 } });
     };
     MAP.loaded() ? apply() : MAP.once('load', apply);
-    drawWetlands();
+    drawWetlands(); drawRadar();
   }
 
   // optional layer: UGS wetland plant-survey sites (from the ugs_wetlands source)
@@ -735,6 +741,31 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
     MAP.loaded() ? go() : MAP.once('load', go);
   }
   document.getElementById('show-wetlands').addEventListener('change', drawWetlands);
+
+  // live radar: NWS NEXRAD mosaic tiles from the Iowa Environmental Mesonet, swapped for a new frame every 5 minutes
+  const RADAR_TILES = 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png';
+  const RADAR_META = 'https://mesonet.agron.iastate.edu/data/gis/images/4326/USCOMP/n0q_0.json';
+  let radarTimer = null, radarValid = '';
+  async function drawRadar() {
+    const on = document.getElementById('show-radar').checked, stamp = document.getElementById('radar-time');
+    clearTimeout(radarTimer);
+    if (!MAP) return;
+    if (!on) { if (MAP.getLayer('radar')) MAP.setLayoutProperty('radar', 'visibility', 'none'); stamp.textContent = ''; return; }
+    try { radarValid = (await fetch(RADAR_META, { cache: 'no-store' }).then(r => r.json())).meta.valid; } catch { /* keep the last frame */ }
+    const go = () => {
+      const tiles = [`${RADAR_TILES}?v=${encodeURIComponent(radarValid)}`];
+      if (!MAP.getSource('radar')) {
+        MAP.addSource('radar', { type: 'raster', tiles, tileSize: 256, maxzoom: 11, attribution: 'Radar: NWS NEXRAD via <a href="https://mesonet.agron.iastate.edu/">Iowa Environmental Mesonet</a>' });
+        MAP.addLayer({ id: 'radar', type: 'raster', source: 'radar', paint: { 'raster-opacity': .6, 'raster-fade-duration': 0 } }, ['wetlands', 'gauges'].find(id => MAP.getLayer(id)));
+      } else MAP.getSource('radar').setTiles(tiles);
+      MAP.setLayoutProperty('radar', 'visibility', 'visible');
+    };
+    // 'load' may have fired already, so wait for the style, not the first load
+    MAP.isStyleLoaded() ? go() : MAP.once('idle', go);
+    stamp.textContent = radarValid ? `(${new Date(radarValid).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })})` : '';
+    radarTimer = setTimeout(drawRadar, 5 * 60 * 1000);
+  }
+  document.getElementById('show-radar').addEventListener('change', drawRadar);
 
   // ---------------------------------------------------------------- water ledger
   function renderLedger(D, { rainAf, riverAf, rain, size, lake, wt }) {
