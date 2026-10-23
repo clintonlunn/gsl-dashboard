@@ -1,0 +1,106 @@
+/* Reusable pieces: lists, ledger, ruler, cards, live readings, map controls, tiles, tables' extras, method and sources. */
+.flowlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.flowlist li { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--grid); padding-bottom: 6px; }
+.flowlist .x { font: 600 1.05rem var(--mono); color: var(--pen); text-align: right; }
+.flowlist .x.calm { color: var(--ink); }
+.flowlist small { display: block; color: var(--ink-2); font-size: .85rem; }
+
+/* water ledger: amounts in and out as a table with bars drawn from a shared zero line */
+.ledger table { font: .8125rem var(--mono); }
+.ledger caption { font-size: .8125rem; }
+.ledger th, .ledger td { padding: 4px 6px; white-space: normal; }
+.ledger th:first-child, .ledger td:first-child { padding-left: 0; }
+.ledger th[scope="row"] { font: 500 .875rem var(--sans); color: var(--ink); text-align: left; }
+.ledger td.num { text-align: right; white-space: nowrap; }
+.ledger td.barcell { width: 38%; padding-left: 0; padding-right: 0; }
+.ledger .lbar { position: relative; height: 12px; }
+.ledger .lbar::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; border-left: 1px solid var(--rule); }
+.ledger .lbar span { position: absolute; top: 0; height: 12px; }
+.ledger .lbar .in { left: 50%; background: var(--hydro); }
+.ledger .lbar .out { right: 50%; background: repeating-linear-gradient(45deg, var(--pen) 0 3px, transparent 3px 6px); border: 1px solid var(--pen); }
+.ledger tr.net th, .ledger tr.net td { border-top: 2px solid var(--rule); font-weight: 600; }
+.ledger tr.sub th { color: var(--ink-2); font-weight: 400; }
+.ledger tr.group th { font: 600 .75rem var(--mono); color: var(--ink-2); text-transform: uppercase; letter-spacing: .05em; padding-top: 10px; }
+.ledger small { display: block; color: var(--ink-2); font: .75rem var(--sans); }
+
+/* water-source split bar */
+.split { display: flex; height: 26px; width: 100%; border: 1px solid var(--rule); }
+.split span { display: block; height: 100%; min-width: 3px; }
+.split-key { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font: .8125rem var(--mono); }
+.split-key li { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; }
+.split-key i { width: 12px; height: 12px; display: block; }
+.split-key .v { color: var(--ink-2); }
+
+/* healthy ruler */
+.ruler { position: relative; height: 84px; margin: 4px 10px 0; font: 12px var(--mono); color: var(--ink-2); }
+.ruler .axis { position: absolute; left: 0; right: 0; top: 44px; border-top: 1px solid var(--rule); }
+.ruler .band { position: absolute; top: 26px; height: 18px; background: var(--healthy-fill); border: 1px solid var(--healthy); }
+.ruler .band-l { position: absolute; top: 4px; transform: translateX(-50%); color: var(--healthy); white-space: nowrap; }
+.ruler .tick { position: absolute; top: 44px; height: 5px; border-left: 1px solid var(--rule); }
+.ruler .tick-l { position: absolute; top: 52px; transform: translateX(-50%); }
+.ruler .low { position: absolute; top: 30px; height: 14px; border-left: 1px dashed var(--ink-2); }
+.ruler .low-l { position: absolute; top: 68px; white-space: nowrap; }
+.ruler .now { position: absolute; top: 30px; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 14px solid var(--pen); transform: translateX(-50%); }
+.ruler .now-l { position: absolute; top: 4px; transform: translateX(-50%); color: var(--ink); white-space: nowrap; }
+.ugs-badge { display: inline-block; font: 600 .6875rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; vertical-align: .15em;
+  padding: 3px 6px; background: var(--ink); color: var(--paper); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .875rem; color: var(--ink-2); margin: 0 0 10px; padding: 0; list-style: none; }
+.legend i { display: inline-block; width: 14px; height: 10px; margin-right: 6px; }
+.legend .on { background: var(--pen); }
+.legend .offk { background: repeating-linear-gradient(45deg, var(--off) 0 2px, transparent 2px 5px); border: 1.5px solid var(--off); }
+.legend .med { height: 0; border-top: 2px dashed var(--ink); vertical-align: middle; }
+.hist-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0 0 8px; font-size: .875rem; color: var(--ink-2); }
+.map { height: clamp(340px, 40vw, 580px); border: 1px solid var(--rule); background: var(--grid); }
+.maplibregl-popup-content { background: var(--paper); color: var(--ink); border: 1px solid var(--ink); border-radius: 0; font: 12px/1.5 var(--mono); padding: 8px 10px; }
+.maplibregl-popup-tip { display: none; }
+.maplibregl-popup-close-button { color: var(--ink); font-size: 16px; }
+.maplibregl-ctrl-attrib { font: 11px var(--sans); }
+/* right now: live readings, compact */
+.now { padding: 12px 0 4px; }
+.now h2 { font: 600 1.05rem/1.3 var(--sans); margin: 0; }
+.now-time { font: 500 .8125rem var(--mono); color: var(--ink-2); }
+.now-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr)); gap: 8px 14px; }
+.now-list li { display: flex; flex-direction: column; min-width: 0; }
+.now-list .lbl { font: 500 .8125rem var(--sans); color: var(--ink-2); }
+.now-list .val { font: 500 1.05rem/1.25 var(--mono); }
+.now-list .sub { font-size: .75rem; color: var(--ink-2); }
+/* home cards: one number each, linking to where the detail lives */
+.cards { list-style: none; margin: 0; padding: 12px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.card { display: flex; flex-direction: column; gap: 2px; height: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--grid-major); border-radius: 4px; color: var(--ink); text-decoration: none; }
+.card:hover { border-color: var(--ink-2); }
+.card:focus-visible { outline: 2px solid var(--pen); outline-offset: 2px; }
+.card .lbl { font: 500 .8125rem var(--sans); color: var(--ink-2); }
+.card .val { font: 500 1.5rem/1.15 var(--mono); }
+.card .sub { font-size: .8125rem; color: var(--ink-2); flex: 1; }
+.card .more { font-size: .8125rem; text-decoration: underline; margin-top: 4px; }
+.card .more::after { content: " →"; }
+.map-toggles { display: flex; flex-wrap: wrap; gap: 0 18px; }
+.map-toggles label { display: inline-flex; gap: 6px; align-items: center; min-height: 24px; margin: 6px 0 0; }
+.radar-loop { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-top: 6px; }
+.radar-loop[hidden] { display: none; }
+/* sized for the longer label so Play/Pause doesn't change width */
+.radar-loop button { min-height: 32px; font-size: .8125rem; flex: none; width: 4.75rem; text-align: center; }
+.radar-loop select { min-height: 32px; font-size: .8125rem; flex: none; max-width: 9.5rem; }
+/* the slider gets its own full-width line */
+.radar-loop input { flex: 1 0 100%; min-width: 0; margin: 0; accent-color: var(--pen); min-height: 24px; }
+.howto { margin-top: 8px; font-size: .8125rem; color: var(--ink-2); }
+.howto summary { color: inherit; }
+.howto .note { margin: 6px 0 0; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); border-block: 1px solid var(--rule); }
+.tile { padding: 12px 14px; border-left: 1px solid var(--grid-major); min-width: 0; }
+.tile:first-child { border-left: 0; padding-left: 0; }
+.tile .lbl { font: 500 .8125rem var(--sans); color: var(--ink-2); }
+.tile .val { font: 500 1.6rem/1.15 var(--mono); margin-top: 2px; }
+.tile .unit { font-size: .875rem; color: var(--ink-2); margin-left: .3em; }
+.tile .sub { font-size: .8125rem; color: var(--ink-2); margin-top: 2px; }
+.tablewrap { overflow-x: auto; }
+.more-rows { margin-top: 8px; }
+.method { padding: 18px 0 8px; font-size: .9rem; color: var(--ink-2); display: grid; gap: 8px; }
+.method p { margin: 0; }
+.method b { color: var(--ink); }
+.glossary { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
+.glossary dt { font: 600 .9rem var(--mono); color: var(--ink); }
+.glossary dd { margin: 0; }
+footer.sources { padding: 18px 0 0; font-size: .875rem; color: var(--ink-2); }
+footer.sources h2 { font: 600 .95rem var(--sans); color: var(--ink); margin: 0 0 6px; }
+footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }

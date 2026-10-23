@@ -28,44 +28,6 @@
   const nice = (s) => s.split(' ').map((w, i) => BRAND[w] || (KEEP.has(w) ? w : i && SMALL.has(w) ? w.toLowerCase()
     : w.length === 1 ? w : w.charAt(0) + w.slice(1).toLowerCase().replace(/([-/&])(\w)/g, (m, p, c) => p + c.toUpperCase()))).join(' ');
 
-  document.head.append(el('style', { textContent: `
-    .rh .lead { font-size: 1.05rem; color: var(--ink); margin: 4px 0 12px; line-height: 1.5; }
-    .rh-controls { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; margin: 0 0 8px; font-size: .875rem; color: var(--ink-2); }
-    .rh-controls label { display: inline-flex; gap: 6px; align-items: center; min-height: 24px; }
-    .rh-controls input[type=search] { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--ink-2); padding: 4px 6px; min-width: 14rem; min-height: 28px; }
-    .rh-chart { width: 100%; height: 400px; }
-    .rh-map { width: 100%; height: 480px; border: 1px solid var(--rule); background: var(--grid); }
-    .rh-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0 0; padding: 0; list-style: none; font-size: .875rem; color: var(--ink-2); }
-    .rh-legend li { display: inline-flex; gap: 6px; align-items: center; }
-    .rh-legend i { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #0c100f; display: inline-block; }
-    .rh-table { table-layout: fixed; width: 100%; min-width: 56rem; }
-    .rh-table > thead th:nth-child(2) { width: 15rem; } .rh-table > thead th:nth-child(n+3) { width: 6.5rem; }
-    .rh-table > thead th:nth-child(n+7), .rh-table > tbody > tr > td:nth-child(n+7) { text-align: center; }
-    .rh-table th, .rh-table td { font-size: 13px; overflow-wrap: anywhere; }
-    .rh-table > * > tr > :nth-child(-n+2) { text-align: left; }
-    .rh-table > * > tr > :nth-child(n+3):nth-child(-n+6) { text-align: right; }
-    .rh-table tbody th { border-bottom: 1px solid var(--grid-major); font: 500 13px var(--sans); color: var(--ink); text-transform: none; letter-spacing: 0; }
-    .rh-table button { font: inherit; font-size: 12px; color: var(--ink); background: none; border: 1px solid var(--ink-2); padding: 2px 8px; min-height: 24px; cursor: pointer; }
-    .rh-table button[aria-pressed=true] { background: var(--ink); color: var(--paper); }
-    .rh h3 { font: 600 .95rem var(--sans); margin: 12px 0 4px; }
-    .rh-caveats { margin: 6px 0 0; padding-left: 1.1em; font-size: .95rem; color: var(--ink-2); display: grid; gap: 4px; }
-    .rh-pop a { color: inherit; }
-    .rh-table td.rh-more { text-align: left; padding: 8px 0 16px 24px; border-bottom: 1px solid var(--grid-major); }
-    .rh-more .sum { margin: 0 0 6px; font: 15px/1.5 var(--sans); color: var(--ink); }
-    .rh-more .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 4px 28px; }
-    .rh-more .grid > div { min-width: 0; }
-    .rh-table td.rh-more, .rh-more .grid th { white-space: normal; }
-    .rh-more .grid th { overflow-wrap: anywhere; }
-    .rh-more .grid table { table-layout: fixed; }
-    .rh-more .grid :is(th, td):first-child { width: 46%; }
-    .rh-more .rights { table-layout: auto; }
-    .rh-more h4 { font: 600 .875rem var(--sans); margin: 8px 0 2px; }
-    .rh-more table { width: 100%; }
-    .rh-more :is(th, td) { font-size: 12.5px; text-align: right; }
-    .rh-more :is(th, td):first-child { text-align: left; }
-    .rh-more .rights :is(th, td):nth-child(-n+3) { text-align: left; }
-    .rh-more .none { color: var(--ink-2); font-size: .9rem; margin: 6px 0 0; }
-  ` }));
 
   let MAP = null, POP = null, FOCUS = null;
   const OPEN = new Set();

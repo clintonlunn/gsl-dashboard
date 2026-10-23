@@ -18,26 +18,6 @@
   ]);
 
   // panel-only styles; colors are the page's CSS tokens so light and dark both work
-  document.head.append(el('style', { textContent: `
-    .ugs-swb-bars { display: grid; gap: 10px; margin: 0 0 4px; font: 13px var(--mono); color: var(--ink-2); }
-    .ugs-swb-row { display: grid; grid-template-columns: 7.5rem 1fr; gap: 10px; align-items: center; }
-    .ugs-swb-track { position: relative; height: 20px; border-left: 1px solid var(--rule); }
-    .ugs-swb-fill { position: absolute; left: 0; top: 3px; height: 14px; }
-    .ugs-swb-fill.now { background: var(--hydro); }
-    .ugs-swb-fill.usual { background: repeating-linear-gradient(45deg, var(--off) 0 2px, transparent 2px 5px); border: 1.5px solid var(--off); box-sizing: border-box; }
-    .ugs-swb-range { position: absolute; top: 9px; height: 0; border-top: 2px solid var(--ink); }
-    .ugs-swb-range::before, .ugs-swb-range::after { content: ''; position: absolute; top: -6px; height: 10px; border-left: 2px solid var(--ink); }
-    .ugs-swb-range::before { left: 0; } .ugs-swb-range::after { right: 0; }
-    .ugs-swb-val { position: absolute; top: 1px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
-    .ugs-swb-scale { display: flex; justify-content: space-between; margin-left: calc(7.5rem + 10px); font-size: 12px; }
-    .ugs-swb-subs { margin-top: 12px; }
-    .ugs-swb-subs th, .ugs-swb-subs td { font-size: 13px; padding: 4px 8px; }
-    .ugs-swb-subs td:not(:first-child), .ugs-swb-subs th:not(:first-child) { text-align: right; }
-    .ugs-swb-chart { width: 100%; height: 590px; }
-    .ugs-swb-hist details { margin-top: 10px; font-size: .9rem; color: var(--ink-2); }
-    .ugs-swb-hist summary { cursor: pointer; color: var(--ink); min-height: 24px; }
-    .ugs-swb-hist td:not(:first-child), .ugs-swb-hist th:not(:first-child) { text-align: right; }
-  ` }));
 
   // ------------------------------------------------------------ At a glance: how wet the ground is
   G.register({

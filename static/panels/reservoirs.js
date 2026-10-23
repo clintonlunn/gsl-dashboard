@@ -24,30 +24,6 @@
     link("PacifiCorp's 1994 FERC license summary", LIHI), extra || '', '.',
   ];
 
-  document.head.append(el('style', { textContent: `
-    .res-list { list-style: none; margin: 0 0 4px; padding: 0; display: grid; gap: 6px; }
-    .res-list li { display: grid; gap: 1px; }
-    .res-name { display: flex; align-items: center; gap: 6px; font-size: .9rem; color: var(--ink); }
-    .res-name .res-bar { margin-left: auto; flex: none; }
-    .res-nums { font: 13px var(--mono); color: var(--ink-2); padding-left: 16px; }
-    .res-list li.res-total { border-top: 1px solid var(--rule); padding-top: 6px; }
-    .res-list li.res-total .res-name { font-weight: 600; }
-    .res-list li.res-total .res-nums { color: var(--ink); }
-    .res-list li.res-import .res-name { color: var(--ink-2); }
-    .res-full { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; }
-    .res-bar { display: inline-block; width: 64px; height: 8px; border: 1px solid var(--ink-2); position: relative; }
-    .res-bar > span { position: absolute; left: 0; top: 0; bottom: 0; }
-    .res-key { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; }
-    .res-table th, .res-table td { font-size: 13px; padding: 4px 8px; white-space: nowrap; }
-    .res-table td { font-family: var(--mono); }
-    .res-table td:not(:first-child):not(:nth-child(2)):not(:last-child) { text-align: right; }
-    .res-table tbody tr.res-sys-head th { text-align: left; padding-top: 10px; font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--grid-major); }
-    .res-notes { font-size: 13px; color: var(--ink-2); margin: 8px 0 0; padding-left: 1.4em; }
-    .res-chart { width: 100%; height: 420px; }
-    .res-hist details { margin-top: 10px; font-size: .9rem; color: var(--ink-2); }
-    .res-hist summary { cursor: pointer; color: var(--ink); min-height: 24px; }
-    .res-hist td:not(:first-child), .res-hist th:not(:first-child) { text-align: right; }
-  ` }));
 
   const key = (sys) => { const k = el('span', { className: 'res-key', style: `background:var(${SYS_COLOR[sys]})` }); k.setAttribute('aria-hidden', 'true'); return k; };
   const fullCell = (p, sys) => {

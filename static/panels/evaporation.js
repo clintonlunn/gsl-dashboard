@@ -7,17 +7,6 @@
   const fmt2 = (v) => v == null ? '—' : v.toFixed(Math.abs(v) >= 10 ? 1 : 2);
   const roundAf = (v) => v == null ? '—' : fmtInt(v >= 100000 ? Math.round(v / 10000) * 10000 : v >= 10000 ? Math.round(v / 1000) * 1000 : Math.round(v / 100) * 100);
 
-  document.head.append(el('style', { textContent: `
-    #evap .evap-range { font-size: .95rem; color: var(--ink-2); margin: -4px 0 12px; }
-    #evap .evap-range b { color: var(--ink); font-family: var(--mono); font-weight: 600; }
-    #evap .evap-balance { display: flex; flex-wrap: wrap; gap: 6px 24px; margin: 0 0 12px; padding: 0; list-style: none; font: 13px var(--mono); color: var(--ink-2); }
-    #evap .evap-balance b { color: var(--ink); font-weight: 600; }
-    #evap details { margin-top: 10px; font-size: .9rem; color: var(--ink-2); }
-    #evap summary { cursor: pointer; color: var(--ink); min-height: 24px; }
-    #evap td, #evap th { font-size: 13px; padding: 4px 8px; }
-    #evap td:not(:first-child), #evap th:not(:first-child) { text-align: right; }
-    #evap h3 { font: 600 .95rem/1.3 var(--sans); margin: 18px 0 0; }
-  ` }));
 
   const sourceParts = (d) => [
     link('gridMET', d?.links?.gridmet || 'https://www.climatologylab.org/gridmet.html'), ' daily grass reference evapotranspiration (Abatzoglou 2013, CC0',

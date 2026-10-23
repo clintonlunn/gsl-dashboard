@@ -15,21 +15,6 @@
   const af = (v) => v >= 1e6 ? `${(v / 1e6).toFixed(2)} million` : fmtInt(Math.round(v / 1000) * 1000);
   const ac = (v) => fmtInt(Math.round(v));
 
-  document.head.append(el('style', { textContent: `
-    .wr .lead { font-size: 1.05rem; color: var(--ink); margin: 4px 0 12px; line-height: 1.5; }
-    .wr-controls { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; margin: 0 0 8px; font-size: .875rem; color: var(--ink-2); }
-    .wr-controls label { display: inline-flex; gap: 6px; align-items: center; min-height: 24px; }
-    .wr-chart { width: 100%; height: 340px; }
-    .wr-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 8px 32px; margin-top: 12px; }
-    .wr-table th, .wr-table td { font-size: 13px; }
-    .wr-table th:first-child, .wr-table td:first-child { text-align: left; }
-    .wr-table tbody th { border-bottom: 1px solid var(--grid-major); font: 500 13px var(--sans); color: var(--ink); text-transform: none; letter-spacing: 0; }
-    .wr-table th:not(:first-child), .wr-table td:not(:first-child) { text-align: right; }
-    .wr-tables > :last-child { grid-column: 1 / -1; }
-    .wr-tables > :last-child :is(th, td):nth-child(-n+3) { text-align: left; }
-    .wr h3 { font: 600 .95rem var(--sans); margin: 8px 0 4px; }
-    .wr-caveats { margin: 6px 0 0; padding-left: 1.1em; font-size: .95rem; color: var(--ink-2); display: grid; gap: 4px; }
-  ` }));
 
   G.register({
     id: 'water_rights', tab: 'ag', order: 30,

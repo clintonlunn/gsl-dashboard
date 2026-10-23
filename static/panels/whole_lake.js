@@ -12,23 +12,6 @@
   const T = (s) => G.parseHour(s);
   const srcLinks = (sites) => sites.flatMap((s, i) => [i ? '; ' : '', link(`${s.site_id} ${s.name}`, USGS(s.site_id))]);
 
-  document.head.append(el('style', { textContent: `
-    .wl-lead { font-size: 1rem; margin: 0 0 12px; }
-    .wl-lead b { font-family: var(--mono); font-weight: 600; }
-    .wl-chart { width: 100%; height: 470px; }
-    .wl-hist-chart { width: 100%; height: 500px; }
-    .wl-key { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; padding: 0; margin: 0 0 8px; font-size: .875rem; color: var(--ink-2); }
-    .wl-key i { display: inline-block; width: 22px; height: 0; margin-right: 6px; vertical-align: middle; border-top-width: 2.5px; }
-    .wl-read { margin-top: 14px; }
-    .wl-read caption { text-align: left; font: 600 .95rem var(--sans); color: var(--ink); padding: 0 0 6px; }
-    .wl-read th[scope="row"] { text-align: left; font: inherit; color: var(--ink); white-space: normal; }
-    .wl-read td, .wl-read th { font-size: 13px; }
-    .wl-read small { display: block; color: var(--ink-2); font: 12px var(--sans); white-space: normal; text-align: left; }
-    .wl-prof { margin-top: 10px; font-size: .9rem; color: var(--ink-2); }
-    .wl-prof summary { cursor: pointer; color: var(--ink); min-height: 24px; }
-    .wl-prof td, .wl-prof th { font-size: 13px; }
-    .wl-notes { font-size: .875rem; color: var(--ink-2); margin: 8px 0 0; padding-left: 1.2em; }
-  ` }));
 
   // line styles carry the meaning as well as color (solid / dashed / dotted), echoed in a text key
   const STY = {

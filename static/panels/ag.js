@@ -11,28 +11,6 @@
   const round = (v) => v >= 1e9 ? `${(v / 1e9).toFixed(1)} billion` : v >= 1e6 ? `${(v / 1e6).toFixed(1)} million` : v >= 1e4 ? fmtInt(Math.round(v / 100) * 100) : fmtInt(Math.round(v));
   const maf = (v) => `${(v / 1e6).toFixed(2)} million`;
 
-  document.head.append(el('style', { textContent: `
-    .ag .lead { font-size: 1.05rem; color: var(--ink); margin: 4px 0 14px; line-height: 1.5; }
-    .ag-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12.5rem), 1fr)); border-block: 1px solid var(--rule); }
-    .ag-card { padding: 14px 16px 12px; border-left: 1px solid var(--grid-major); min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-    .ag-card:first-child { border-left: 0; padding-left: 0; }
-    .ag-card .lbl { font: 500 .8125rem var(--sans); color: var(--ink-2); }
-    .ag-card .val { font: 500 1.6rem/1.15 var(--mono); color: var(--ink); }
-    .ag-card .unit { font-size: .875rem; color: var(--ink-2); margin-left: .3em; }
-    .ag-card .say { font-size: .9rem; color: var(--ink); line-height: 1.45; }
-    .ag-card .src { margin-top: auto; padding-top: 6px; font-size: .8125rem; }
-    .ag-chart { width: 100%; height: 380px; }
-    .ag-controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0 0 8px; font-size: .875rem; color: var(--ink-2); }
-    .ag-words { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 6px 0 0; font-size: .95rem; color: var(--ink-2); }
-    .ag-words dt { font: 600 .95rem var(--sans); color: var(--ink); }
-    .ag-words dd { margin: 0; }
-    @media (max-width: 560px) { .ag-words { grid-template-columns: 1fr; } .ag-words dd { margin-bottom: 6px; } }
-    .ag-caveats { margin: 6px 0 0; padding-left: 1.1em; font-size: .95rem; color: var(--ink-2); display: grid; gap: 6px; }
-    .ag details { margin-top: 10px; font-size: .9rem; color: var(--ink-2); }
-    .ag summary { cursor: pointer; color: var(--ink); min-height: 24px; }
-    .ag-table td, .ag-table th { font-size: 13px; }
-    .ag-table th:nth-child(n+3), .ag-table td:nth-child(n+3) { text-align: right; }
-  ` }));
 
   // ------------------------------------------------------------ source lines
   const usu = (a) => ['Utah State University, Hill, Barker & Lewis (2011), ', link('UAES Research Report 213, Appendix I', a.url),

@@ -20,18 +20,6 @@
   const depth = (v) => v == null ? '—' : v < 0 ? `${fmt1(-v)} ft above ground` : `${fmt1(v)} ft down`;
   const plural = (n, w) => `${fmtInt(n)} ${w}${n === 1 ? '' : 's'}`;
 
-  document.head.append(el('style', { textContent: `
-    .ugs-gw .lead { margin: 4px 0 12px; }
-    .ugs-gw .lead b { font-family: var(--mono); font-weight: 600; }
-    .ugs-gw table { font-size: 13px; }
-    .ugs-gw td, .ugs-gw th { padding: 3px 10px; }
-    .ugs-gw td.n, .ugs-gw th.n { text-align: right; font-family: var(--mono); white-space: nowrap; }
-    .ugs-gw caption { text-align: left; font-size: .8125rem; color: var(--ink-2); padding-bottom: 4px; }
-    .ugs-gw h3 { font: 600 .9375rem var(--sans); margin: 18px 0 4px; }
-    .ugs-gw details { margin-top: 10px; font-size: .875rem; color: var(--ink-2); }
-    .ugs-gw summary { cursor: pointer; color: var(--ink); min-height: 24px; }
-    .ugs-gw small { font-size: 12px; color: var(--ink-2); }
-  ` }));
 
   const sourceParts = (d, L, withChem) => {
     const P = d?.portal;

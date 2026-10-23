@@ -8,15 +8,6 @@
   const pct = (v) => v == null ? '—' : `${fmt1(v)}%`;
   const times = (v) => Math.round(v / OCEAN_PCT);
 
-  document.head.append(el('style', { textContent: `
-    .ugs-brine details { margin-top: 10px; font-size: .9rem; color: var(--ink-2); }
-    .ugs-brine summary { cursor: pointer; color: var(--ink); min-height: 24px; }
-    .ugs-brine table { font-size: 13px; }
-    .ugs-brine td, .ugs-brine th { padding: 3px 10px; }
-    .ugs-brine td:not(:first-child), .ugs-brine th:not(:first-child) { text-align: right; }
-    .ugs-brine .lead { margin: 4px 0 12px; }
-    .ugs-brine .lead b { font-family: var(--mono); font-weight: 600; }
-  ` }));
 
   G.register({
     id: 'ugs_brine', tab: 'history', order: 70,

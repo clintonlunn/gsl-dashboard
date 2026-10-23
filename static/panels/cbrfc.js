@@ -28,22 +28,6 @@
     return r >= 0.85 && r < 1.15 ? 'about normal' : r < 1 ? `${Math.round(r * 100)}% of normal` : `${r.toFixed(r < 10 ? 1 : 0)}× normal`;
   };
 
-  document.head.append(el('style', { textContent: `
-    .cbrfc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: .875rem; color: var(--ink-2); }
-    .cbrfc-list b { color: var(--ink); font-family: var(--mono); font-weight: 600; }
-    .cbrfc-list .nm { color: var(--ink); }
-    .cbrfc-sub { font: 600 .8125rem var(--sans); color: var(--ink-2); margin: 12px 0 4px; }
-    .cbrfc-tbl td:nth-child(2), .cbrfc-tbl th:nth-child(2), .cbrfc-tbl td:nth-child(3), .cbrfc-tbl th:nth-child(3) { text-align: right; }
-    .cbrfc-tbl th[scope=row] { text-align: left; font: inherit; color: var(--ink); white-space: normal; min-width: 14rem; }
-    .cbrfc-tbl td.l, .cbrfc-tbl th.l { text-align: left; }
-    .cbrfc-tbl tr.key th[scope=row] { font-weight: 600; }
-    .cbrfc-flow-chart { width: 100%; height: 300px; }
-    .cbrfc-hist-chart { width: 100%; height: 320px; }
-    .cbrfc-hist details { margin-top: 10px; font-size: .9rem; color: var(--ink-2); }
-    .cbrfc-hist summary { cursor: pointer; color: var(--ink); min-height: 24px; }
-    .cbrfc-hist label { font-size: .875rem; color: var(--ink-2); }
-    .cbrfc-hist select { font: .875rem var(--sans); min-height: 32px; margin-left: 6px; }
-  ` }));
 
   const srcParts = (d, { flows = true, seasonal = true } = {}) => {
     const L = d?.links || {};
