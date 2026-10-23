@@ -15,7 +15,7 @@
 
   // ---- glance: one fact
   G.register({
-    id: 'diversions', tab: 'glance', order: 30,
+    id: 'diversions', tab: 'water', order: 30,
     mount(slot) {
       const root = el('div', { className: 'fact' });
       root.append(el('h2', { textContent: 'Water taken before the lake' }), el('p', { className: 'lead' }),

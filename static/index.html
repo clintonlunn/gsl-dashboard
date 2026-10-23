@@ -61,6 +61,7 @@ button[disabled] { opacity: .65; cursor: progress; }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); border-bottom: 1px solid var(--rule); }
 .fact { padding: 18px 20px 20px; border-left: 1px solid var(--grid-major); min-width: 0; }
 .fact:first-child { border-left: 0; padding-left: 0; }
+#panels-water { grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); row-gap: 8px; }
 .fact h2, .section h2 { font: 600 1.05rem/1.3 var(--sans); margin: 0; }
 .fact .lead { margin: 4px 0 12px; color: var(--ink-2); font-size: .95rem; }
 .fact .lead b { color: var(--ink); font-family: var(--mono); font-weight: 600; }
@@ -162,10 +163,12 @@ button[disabled] { opacity: .65; cursor: progress; }
   /* short numbers with units ("+1.93 in", "282 mg/L") stay on one line */
   table:not(.stack) .nw { white-space: nowrap !important; }
 }
-@media (max-width: 599px) { .tab-more { display: none; } .tabs [role="tab"] { padding-inline: 9px; } header .bar { flex: 1 0 100%; padding-top: 0; } #asof { flex: 1; font-size: .8125rem; } }
+@media (max-width: 1499px) { .tab-more { display: none; } }
+@media (max-width: 599px) { header .bar { flex: 1 0 100%; padding-top: 0; } #asof { flex: 1; font-size: .8125rem; } }
 .tabs [role="tab"] { border: 0; border-bottom: 3px solid transparent; background: none; color: var(--ink-2); font: 600 .9375rem var(--sans); padding: 10px 16px 8px; min-height: 44px; }
 .tabs [role="tab"]:hover { color: var(--ink); background: none; }
 .tabs [role="tab"][aria-selected="true"] { color: var(--ink); border-bottom-color: var(--pen); }
+@media (max-width: 599px) { .tabs [role="tab"] { padding-inline: 7px; font-size: .875rem; } }
 
 /* At a glance fits one screen on a laptop or larger: answer and facts on the left, map over lake chart on the right */
 @media (min-width: 1100px) and (min-height: 680px) {
@@ -176,12 +179,26 @@ button[disabled] { opacity: .65; cursor: progress; }
   .glance .answer p { font-size: 1rem; }
   .glance .facts { grid-column: 1; grid-row: 2; display: block; position: relative; overflow-y: auto; overflow-x: hidden; border-bottom: 0; min-height: 0; padding-right: 6px; }
   .glance .fact { border-left: 0; padding: 12px 0; border-top: 1px solid var(--grid-major); }
+  .glance .cards { padding-top: 4px; }
   .glance .visuals { grid-column: 2; grid-row: 1 / 3; display: grid; grid-template-columns: 1fr; grid-template-rows: minmax(0, 3fr) minmax(0, 2fr); min-height: 0; }
   .glance .visuals > .section { display: flex; flex-direction: column; min-height: 0; padding: 12px 0; }
   .glance .visuals .note { margin-bottom: 6px; }
   .glance .map { flex: 1; height: auto; min-height: 220px; }
   .glance #chart-lake-level { flex: 1; height: auto; min-height: 140px; }
 }
+/* home cards: one number each, linking to where the detail lives */
+.cards { list-style: none; margin: 0; padding: 12px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.card { display: flex; flex-direction: column; gap: 2px; height: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--grid-major); border-radius: 4px; color: var(--ink); text-decoration: none; }
+.card:hover { border-color: var(--ink-2); }
+.card:focus-visible { outline: 2px solid var(--pen); outline-offset: 2px; }
+.card .lbl { font: 500 .8125rem var(--sans); color: var(--ink-2); }
+.card .val { font: 500 1.5rem/1.15 var(--mono); }
+.card .sub { font-size: .8125rem; color: var(--ink-2); flex: 1; }
+.card .more { font-size: .8125rem; text-decoration: underline; margin-top: 4px; }
+.card .more::after { content: " →"; }
+.howto { margin-top: 8px; font-size: .8125rem; color: var(--ink-2); }
+.howto summary { cursor: pointer; min-height: 24px; }
+.howto .note { margin: 6px 0 0; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); border-block: 1px solid var(--rule); }
 .tile { padding: 12px 14px; border-left: 1px solid var(--grid-major); min-width: 0; }
 .tile:first-child { border-left: 0; padding-left: 0; }
@@ -214,6 +231,7 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
     <p class="brand">Great Salt Lake water check</p>
     <div class="tabs" role="tablist" aria-label="Level of detail">
       <button type="button" role="tab" id="tab-glance" aria-controls="panel-glance" aria-selected="true">At a glance</button>
+      <button type="button" role="tab" id="tab-water" aria-controls="panel-water" aria-selected="false" tabindex="-1">Water<span class="tab-more"> in and out</span></button>
       <button type="button" role="tab" id="tab-history" aria-controls="panel-history" aria-selected="false" tabindex="-1">History</button>
       <button type="button" role="tab" id="tab-ag" aria-controls="panel-ag" aria-selected="false" tabindex="-1">Farms<span class="tab-more"> and water</span></button>
       <button type="button" role="tab" id="tab-details" aria-controls="panel-details" aria-selected="false" tabindex="-1">Details<span class="tab-more"> and method</span></button>
@@ -247,10 +265,52 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
       <p class="when" id="when"></p>
       <h1 id="answer-h">Loading the latest gauge readings…</h1>
       <p id="answer-p"></p>
-      <p class="src" id="src-answer"></p>
+      <details class="howto"><summary>Sources for these numbers</summary><p class="src" id="src-answer"></p></details>
     </section>
 
-    <section class="facts" id="panels-glance" aria-label="Key facts">
+    <section class="facts" id="panels-glance" aria-label="Key numbers">
+      <ul class="cards" aria-label="This period in four numbers">
+        <li><a class="card" href="#water" data-go="source-lead"><span class="lbl">Water in</span><span class="val" id="c-in">—</span><span class="sub" id="c-in-sub"></span><span class="more">Where it came from</span></a></li>
+        <li><a class="card" href="#water" data-go="ledger-lead"><span class="lbl">Water out</span><span class="val" id="c-out">—</span><span class="sub" id="c-out-sub"></span><span class="more">The full ledger</span></a></li>
+        <li><a class="card" href="#water" data-go="snotel-lead"><span class="lbl">Snow in the mountains</span><span class="val" id="c-snow">—</span><span class="sub" id="c-snow-sub"></span><span class="more">Snowpack by basin</span></a></li>
+        <li><a class="card" href="#water" data-go="cbrfc-lead"><span class="lbl">What's coming</span><span class="val" id="c-next">—</span><span class="sub" id="c-next-sub"></span><span class="more">River forecasts</span></a></li>
+      </ul>
+      <div class="fact health">
+        <h2>How far from healthy</h2>
+        <p class="lead" id="health-lead">—</p>
+        <div class="ruler" id="ruler" role="img"></div>
+        <p class="src">"Healthy" is the range where the state's lake-level matrix rates brine shrimp, birds, wetlands, air quality from dust, and lake industries as being in good shape. Below it, exposed lakebed and rising salinity start to harm them.</p>
+        <p class="src" id="src-health"></p>
+      </div>
+    </section>
+
+    <div class="wide2 visuals">
+      <section class="section" aria-labelledby="map-h">
+        <h2 id="map-h">Where we measure</h2>
+        <div id="map" class="map"></div>
+        <label class="src" for="show-wetlands"><input type="checkbox" id="show-wetlands"> Show UGS wetland survey sites</label>
+        <details class="howto"><summary>How to read the map, and sources</summary>
+          <p class="note">Dots are USGS gauges: black ones had readings for this period, white ones had none, and the orange one measures the lake's water level. Green dots are UGS wetland survey sites: reference-quality sites are solid, others hollow. Names hide when they would overlap; zoom in to see more. Select a dot for its numbers. Use two fingers or Ctrl + scroll to zoom.</p>
+          <p class="src" id="imagery-note"></p>
+          <p class="src" id="src-map"></p>
+        </details>
+        <ul class="sr-only" id="map-list" aria-label="Gauges on the map"></ul>
+      </section>
+
+      <section class="section" aria-labelledby="level-h">
+        <h2 id="level-h">What the lake gauge shows</h2>
+        <div class="chart" id="chart-lake-level"></div>
+        <details class="howto"><summary>How to read the chart, and sources</summary>
+          <p class="note">Water level at Saltair, on the south shore. The shaded part is the period you picked; the dashed line is the level just before it. Sharp jumps are wind sloshing water toward the shore, not new water, so compare calm stretches.</p>
+          <p class="src" id="src-level"></p>
+        </details>
+      </section>
+    </div>
+
+  </div>
+
+  <div class="panel" id="panel-water" role="tabpanel" aria-labelledby="tab-water" hidden>
+    <section class="facts" id="panels-water" aria-label="Water in and out">
       <div class="fact ledger" id="ledger-fact">
         <h2 id="ledger-h">The lake's water ledger</h2>
         <p class="lead" id="ledger-lead">—</p>
@@ -264,39 +324,12 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
         <p class="src" id="src-source"></p>
       </div>
       <div class="fact">
-        <h2>How far from healthy</h2>
-        <p class="lead" id="health-lead">—</p>
-        <div class="ruler" id="ruler" role="img"></div>
-        <p class="src">"Healthy" is the range where the state's lake-level matrix rates brine shrimp, birds, wetlands, air quality from dust, and lake industries as being in good shape. Below it, exposed lakebed and rising salinity start to harm them.</p>
-        <p class="src" id="src-health"></p>
-      </div>
-      <div class="fact">
         <h2>Rivers and creeks</h2>
         <p class="lead" id="flow-lead"></p>
         <ul class="flowlist" id="flowlist"></ul>
         <p class="src" id="src-flow"></p>
       </div>
     </section>
-
-    <div class="wide2 visuals">
-      <section class="section" aria-labelledby="map-h">
-        <h2 id="map-h">Where we measure</h2>
-        <p class="note">Dots are USGS gauges: black ones had readings for this period, white ones had none, and the orange one measures the lake's water level. Names hide when they would overlap; zoom in to see more. Select a dot for its numbers. Use two fingers or Ctrl + scroll to zoom.</p>
-        <div id="map" class="map"></div>
-        <label class="src" for="show-wetlands"><input type="checkbox" id="show-wetlands"> Show UGS wetland survey sites (green dots: reference-quality sites are solid, others hollow)</label>
-        <p class="src" id="imagery-note"></p>
-        <p class="src" id="src-map"></p>
-        <ul class="sr-only" id="map-list" aria-label="Gauges on the map"></ul>
-      </section>
-
-      <section class="section" aria-labelledby="level-h">
-        <h2 id="level-h">What the lake gauge shows</h2>
-        <p class="note">Water level at Saltair, on the south shore. The shaded part is the period you picked; the dashed line is the level just before it. Sharp jumps are wind sloshing water toward the shore, not new water, so compare calm stretches.</p>
-        <div class="chart" id="chart-lake-level"></div>
-        <p class="src" id="src-level"></p>
-      </section>
-    </div>
-
   </div>
 
   <div class="panel" id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden>
@@ -734,6 +767,32 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
     cite('src-ledger', 'rain from ', ACIS(), '; rivers from USGS gauges; evaporation estimated from ', link('gridMET', 'https://www.climatologylab.org/gridmet.html'), ' reference ET × 0.884 (', link('Mohammed & Tarboton 2012', 'https://doi.org/10.1029/2012WR011908'), '); canals from ', link('Utah Division of Water Rights', 'https://waterrights.utah.gov/'), '; reservoirs from ', link('NRCS AWDB', 'https://wcc.sc.egov.usda.gov/awdbRestApi/swagger-ui/index.html'), ' and Water Rights; lake area from ', link('USGS', 'https://doi.org/10.5066/P9DGG75W'), '. Not counted: groundwater, ungauged creeks (about 7% of inflow per the state water budget).');
   }
 
+  // ---------------------------------------------------------------- home cards
+  // water in and out come from the page's own numbers; plug-in panels with a card(data, D) -> { val, sub } fill the rest
+  let cardArgs = null;
+  function renderCards(D, { gallons, inIn, rain, size }) {
+    cardArgs = [D, { gallons, inIn, rain, size }];
+    const set = (id, val, sub) => { document.getElementById(`c-${id}`).textContent = val; document.getElementById(`c-${id}-sub`).textContent = sub; };
+    const S = D.sources || {}, ev = S.evaporation?.available ? S.evaporation : null;
+    const div = S.diversions?.total && !S.diversions.error ? S.diversions.total : null;
+    set('in', size ? `+${inIn.toFixed(1)} in` : '—', `${rain ? 'Rain and rivers' : 'Rivers'} added about ${pretty(gallons)} gallons.`);
+    set('out', ev ? `−${ev.evap_in.toFixed(1)} in` : '—', (ev ? 'Evaporation, estimated.' : 'No evaporation estimate for this period.') + (div?.af > 0 ? ` Canals took ${pretty(div.af * GAL_PER_AF)} gallons before the lake.` : ''));
+    for (const [id, pid] of [['snow', 'snotel'], ['next', 'cbrfc']]) {
+      const p = PANELS.find(x => x.id === pid && x.card);
+      let c = null;
+      try { c = p?.card(S[pid], D); } catch (e) { console.error(`card ${pid}`, e); }
+      set(id, c?.val ?? '—', c?.sub ?? 'Not available right now.');
+    }
+  }
+  document.querySelectorAll('.card[data-go]').forEach(a => a.addEventListener('click', (e) => {
+    e.preventDefault();
+    showTab(document.getElementById('tab-water'));
+    const fact = document.getElementById(a.dataset.go)?.closest('.fact'), h = fact?.querySelector('h2');
+    if (!fact) return;
+    fact.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true });
+  }));
+
   // ---------------------------------------------------------------- page
   function windowText(win) {
     const f = parseDay(win.from), t = parseDay(win.to), yrs = f.getFullYear() !== t.getFullYear() || f.getFullYear() !== new Date().getFullYear();
@@ -787,6 +846,7 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
 
     // the ledger: what came in, what went out, and what was kept upstream
     renderLedger(D, { rainAf, riverAf, rain, size, lake, wt });
+    renderCards(D, { gallons, inIn: rain ? rainIn + riverIn : riverIn, rain, size });
 
     // where the water came from
     const parts = [...(rainAf > 0 ? [{ name: 'Rain on the lake', af: rainAf, color: css('--rain') }] : []),
@@ -872,7 +932,7 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
     cite('src-cum', 'USGS gauges ', ...gaugeLinks(termIds), '.');
     cite('src-rain', ACIS(), ', MultiStnData daily precipitation.');
     if (upstream[0]) cite('src-jump', 'USGS gauge ', link(upstream[0].site_id, USGS(upstream[0].site_id)), '.');
-    renderPanels('glance');
+    renderPanels('glance'); renderPanels('water');
     if (!document.getElementById('panel-ag').hidden) renderPanels('ag');
     if (document.getElementById('panel-details').hidden) return;
     renderPanels('details');
@@ -894,8 +954,8 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
   }
 
   // ---------------------------------------------------------------- plug-in panels (static/panels/*.js)
-  // A panel file calls GSL.register({ id, tab: 'glance' | 'history' | 'details', order, mount(slot) -> root,
-  //   render(data, D, root), renderHistory(data, HIST, root) }). `data` is DATA.sources[id] (or HIST.sources[id]).
+  // A panel file calls GSL.register({ id, tab: 'glance' | 'water' | 'history' | 'details', order, mount(slot) -> root,
+  //   render(data, D, root), renderHistory(data, HIST, root), card(data, D) -> { val, sub } }). `data` is DATA.sources[id] (or HIST.sources[id]).
   const PANELS = [];
   // panels built on Utah Geological Survey data (ids starting "ugs") get a visible badge on their heading
   const panelRoot = (p) => {
@@ -986,7 +1046,7 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
     .observe(document.querySelector('main'), { childList: true, subtree: true });
   const DETAIL = {};
   window.GSL = {
-    register(p) { PANELS.push(p); PANELS.sort((a, c) => (a.order ?? 50) - (c.order ?? 50)); if (DATA) { renderPanels('glance'); renderPanels('details'); } if (HIST) renderPanels('history'); },
+    register(p) { PANELS.push(p); PANELS.sort((a, c) => (a.order ?? 50) - (c.order ?? 50)); if (DATA) { renderPanels('glance'); renderPanels('water'); renderPanels('details'); if (p.card && cardArgs) renderCards(...cardArgs); } if (HIST) renderPanels('history'); },
     css, fmtInt, fmt1, pretty, parseDay, parseHour, isoDay, addDays, fmtDay, el, b, link, cite, chart, emptyChart, base, lineChart,
     GAL_PER_AF, get ugs() { return DATA?.config?.ugs || {}; },
     // a source's on-demand extras (sources/<name>.py detail()), fetched once

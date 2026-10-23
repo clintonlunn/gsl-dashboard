@@ -40,7 +40,7 @@
 
   // ------------------------------------------------------------ At a glance
   G.register({
-    id: 'snotel', tab: 'glance', order: 50,
+    id: 'snotel', tab: 'water', order: 50,
     mount(slot) {
       const root = el('div', { className: 'fact snotel-fact', id: 'snotel-fact' },
         el('h2', { id: 'snotel-h', textContent: 'Snow in the mountains' }),
@@ -51,6 +51,18 @@
       root.setAttribute('aria-labelledby', 'snotel-h');
       slot.append(root);
       return root;
+    },
+    // the home page card: one number for the snowpack
+    card(d) {
+      const live = (d?.basins || []).filter(x => x.reporting);
+      if (!d || d.error || !live.length) return null;
+      const asOf = live.map(x => x.as_of).sort().pop(), withPct = live.filter(x => x.pct_median != null);
+      if (live.every(x => x.off_season)) {
+        const last = live.map(x => x.last_wy.apr1_pct).filter(v => v != null);
+        return { val: 'Off season', sub: last.length ? `Last winter: ${pct(last.reduce((s, v) => s + v, 0) / last.length)} of normal on April 1.` : 'Snow usually starts building in November.' };
+      }
+      if (withPct.length) { const avg = withPct.reduce((s, x) => s + x.pct_median, 0) / withPct.length; return { val: pct(avg), sub: `of normal for ${when(asOf)}; ${outlook(avg)}.` }; }
+      return { val: 'Too early', sub: `Normal snowpack for ${when(asOf)} is still small.` };
     },
     render(d, D) {
       const lead = document.getElementById('snotel-lead'), vis = document.getElementById('snotel-vis'), note = document.getElementById('snotel-note');
