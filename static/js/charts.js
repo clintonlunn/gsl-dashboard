@@ -34,6 +34,8 @@ function axisFonts(opt) {
 export function chart(id) {
   const node = document.getElementById(id);
   if (!charts[id]) {
+    // ECharts puts its aria-label on the container, which needs a role for the label to be allowed and read
+    node.setAttribute('role', 'img');
     const inst = charts[id] = echarts.init(node, null, { renderer: 'svg' });
     const set = inst.setOption.bind(inst);
     inst.setOption = (opt, ...rest) => set(opt ? fitLegend(axisFonts(opt), node.clientWidth || inst.getWidth()) : opt, ...rest);
