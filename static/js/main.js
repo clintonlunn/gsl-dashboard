@@ -1,9 +1,10 @@
 // Page entry: period form, data loading and tabs. util.js has helpers, state.js the shared data and API, charts.js the
-// ECharts wrappers, map.js the map and radar, home.js the first two tabs, history.js the history tab, panels.js the plug-ins.
+// ECharts wrappers, map.js the map and radar, now.js the live readings, home.js the first two tabs, history.js the history tab, panels.js the plug-ins.
 import { chart, charts, emptyChart, measure } from './charts.js';
 import { drawHistory } from './history.js';
 import { render, windowText } from './home.js';
 import { resizeMap } from './map.js';
+import { drawNow } from './now.js';
 import { renderPanels, stackTables } from './panels.js';
 import { addEventPresets, daysAgo, form, fromIn, preset, setPresetDates, syncPreset, toIn, today } from './period.js';
 import { STATIC, api, state } from './state.js';
@@ -21,10 +22,11 @@ export async function load() {
   const r = await api.data(fromIn.value, toIn.value); const j = await r.json();
   if (!r.ok) throw new Error(j.error || r.statusText);
   await FONTS;
-  state.DATA = j; addEventPresets(j.events); render();
+  state.DATA = j; addEventPresets(j.events); render(); drawNow();
   status.textContent = `Showing ${windowText(j.window).when}.`;
 }
 export function showError(e) {
+  drawNow(); // live readings don't depend on the period's data
   document.getElementById('answer-h').replaceChildren(el('span', { className: 'err', textContent: `Couldn't load the gauge data: ${e.message}.` }));
   document.getElementById('answer-p').textContent = STATIC ? 'Pick one of the periods in the list.' : 'Check the dates, or check that the server is running and press Refresh data.';
   status.textContent = 'Loading failed.';
