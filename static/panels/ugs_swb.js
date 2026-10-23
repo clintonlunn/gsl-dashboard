@@ -41,7 +41,7 @@
 
   // ------------------------------------------------------------ At a glance: how wet the ground is
   G.register({
-    id: 'ugs_swb', tab: 'glance', order: 40,
+    id: 'ugs_swb', tab: 'water', order: 40,
     mount(slot) {
       const root = el('div', { className: 'fact', id: 'ugs-swb-fact' },
         el('h2', { textContent: 'How wet the ground is', id: 'ugs-swb-h' }),

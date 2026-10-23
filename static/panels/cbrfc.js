@@ -79,7 +79,7 @@
 
   // ------------------------------------------------------------ At a glance
   G.register({
-    id: 'cbrfc', tab: 'glance', order: 55,
+    id: 'cbrfc', tab: 'water', order: 55,
     mount(slot) {
       const root = el('div', { className: 'fact', id: 'cbrfc-fact' },
         el('h2', { id: 'cbrfc-h', textContent: 'What forecasters expect' }),
@@ -89,6 +89,17 @@
       root.setAttribute('aria-labelledby', 'cbrfc-h');
       slot.append(root);
       return root;
+    },
+    // the home page card: the seasonal forecast when there is one, else the Bear River's next 10 days
+    card(d) {
+      if (!d || d.error || (!d.points?.length && !d.flows?.length)) return null;
+      const keys = keyPoints(d), bear = keys.find(p => p.river === 'Bear River') || keys[0];
+      if (d.status === 'official' && bear) return { val: pct(bear.pct_avg), sub: `of usual ${period(bear.period, bear.wy)} flow expected for the ${short(bear.name)}.` };
+      const g = d.status === 'guidance' && d.guidance.map(x => ({ ...x, p: d.points.find(p => p.id === x.id) })).filter(x => x.p);
+      if (g?.length) { const gb = g.find(x => x.p.river === 'Bear River') || g[0]; return { val: `~${pct(gb.pct_avg)}`, sub: `of usual April–July flow for the ${short(gb.p.name)}, early guess.` }; }
+      const f = d.flows.find(x => x.river === 'Bear River' && x.latest && x.end) || d.flows.find(x => x.latest && x.end);
+      if (!f) return null;
+      return { val: `${cfs(f.end.cfs)} cfs`, sub: `${short(f.name)} by ${fmtDate(f.end.ts, false)}, now ${cfs(f.latest.cfs)} cfs.` };
     },
     render(d) {
       const lead = document.getElementById('cbrfc-lead'), vis = document.getElementById('cbrfc-vis');

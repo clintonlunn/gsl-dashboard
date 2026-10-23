@@ -58,7 +58,7 @@
 
   // ------------------------------------------------------------ At a glance
   G.register({
-    id: 'reservoirs', tab: 'glance', order: 45,
+    id: 'reservoirs', tab: 'water', order: 45,
     mount(slot) {
       const root = el('div', { className: 'fact', id: 'res-fact' },
         el('h2', { textContent: 'Water held in reservoirs', id: 'res-h' }),
