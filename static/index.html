@@ -200,6 +200,10 @@ button[disabled] { opacity: .65; cursor: progress; }
 .card .more::after { content: " →"; }
 .map-toggles { display: flex; flex-wrap: wrap; gap: 0 18px; }
 .map-toggles label { display: inline-flex; gap: 6px; align-items: center; min-height: 24px; margin: 6px 0 0; }
+.radar-loop { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+.radar-loop[hidden] { display: none; }
+.radar-loop button { min-height: 32px; font-size: .8125rem; flex: none; }
+.radar-loop input { flex: 1; min-width: 0; accent-color: var(--pen); min-height: 24px; }
 .howto { margin-top: 8px; font-size: .8125rem; color: var(--ink-2); }
 .howto summary { cursor: pointer; min-height: 24px; }
 .howto .note { margin: 6px 0 0; }
@@ -298,11 +302,15 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
           <label class="src" for="show-radar"><input type="checkbox" id="show-radar" checked> Live rain radar <span id="radar-time"></span></label>
           <label class="src" for="show-wetlands"><input type="checkbox" id="show-wetlands"> UGS wetland survey sites</label>
         </div>
+        <div class="radar-loop" id="radar-loop">
+          <button type="button" id="radar-play" aria-pressed="false">Play last 3 hours</button>
+          <input type="range" id="radar-slider" min="0" max="18" step="1" value="18" aria-label="Radar time, last 3 hours in 10-minute steps">
+        </div>
         <details class="howto"><summary>How to read the map, and sources</summary>
           <p class="note">Dots are USGS gauges: black ones had readings for this period, white ones had none, and the orange one measures the lake's water level. Green dots are UGS wetland survey sites: reference-quality sites are solid, others hollow. Names hide when they would overlap; zoom in to see more. Select a dot for its numbers. Use two fingers or Ctrl + scroll to zoom.</p>
           <p class="src" id="imagery-note"></p>
           <p class="src" id="src-map"></p>
-          <p class="src">Radar: National Weather Service NEXRAD base reflectivity, a mosaic of every US radar updated every 5 minutes, from the <a href="https://mesonet.agron.iastate.edu/ogc/">Iowa Environmental Mesonet</a>. Brighter colors mean heavier rain or snow; it shows what is falling now, not how much has fallen. Mountains block the lowest beams, so light rain in some valleys can be missed.</p>
+          <p class="src">Radar: National Weather Service NEXRAD base reflectivity, a mosaic of every US radar updated every 5 minutes (Play steps through the last 3 hours, 10 minutes at a time), from the <a href="https://mesonet.agron.iastate.edu/ogc/">Iowa Environmental Mesonet</a>. Brighter colors mean heavier rain or snow; it shows what is falling now, not how much has fallen. Mountains block the lowest beams, so light rain in some valleys can be missed.</p>
         </details>
         <ul class="sr-only" id="map-list" aria-label="Gauges on the map"></ul>
       </section>
@@ -742,27 +750,69 @@ footer.sources ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; }
   }
   document.getElementById('show-wetlands').addEventListener('change', drawWetlands);
 
-  // live radar: NWS NEXRAD mosaic tiles from the Iowa Environmental Mesonet, swapped for a new frame every 5 minutes
+  // live radar: NWS NEXRAD mosaic tiles from the Iowa Environmental Mesonet, swapped for a new frame every 5 minutes.
+  // The loop plays the last 3 hours in 10-minute steps; each past frame is its own layer, faded in and out so tiles stay loaded.
   const RADAR_TILES = 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png';
+  const RADAR_PAST = (t) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::USCOMP-N0Q-${t}/{z}/{x}/{y}.png`;
   const RADAR_META = 'https://mesonet.agron.iastate.edu/data/gis/images/4326/USCOMP/n0q_0.json';
-  let radarTimer = null, radarValid = '';
+  const RADAR_OPACITY = .6, LOOP_STEPS = 18, LOOP_MIN = 10;
+  const utcStamp = (d) => `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}`;
+  const clock = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const loopBtn = document.getElementById('radar-play'), loopSlider = document.getElementById('radar-slider');
+  let radarTimer = null, radarValid = '', loopBuiltFor = '', loopTimer = null;
+  const frameTime = (i) => new Date(new Date(radarValid).getTime() - (LOOP_STEPS - i) * LOOP_MIN * 60000);
+  const frameLayers = () => MAP ? MAP.getStyle().layers.filter(l => l.id.startsWith('radar')).map(l => l.id) : [];
+  function showFrame(i) {
+    loopSlider.value = i;
+    const t = frameTime(i), latest = i === LOOP_STEPS;
+    loopSlider.setAttribute('aria-valuetext', `${clock(t)}${latest ? ', latest' : ''}`);
+    document.getElementById('radar-time').textContent = radarValid ? `(${clock(t)}${latest ? '' : ', replay'})` : '';
+    for (const id of frameLayers()) MAP.setPaintProperty(id, 'raster-opacity', id === (latest ? 'radar' : `radar-${i}`) ? RADAR_OPACITY : 0);
+  }
+  function buildLoop() {
+    if (loopBuiltFor === radarValid || !MAP?.getLayer('radar')) return;
+    for (const id of frameLayers()) if (id !== 'radar') { MAP.removeLayer(id); MAP.removeSource(id); }
+    for (let i = 0; i < LOOP_STEPS; i++) {
+      MAP.addSource(`radar-${i}`, { type: 'raster', tiles: [RADAR_PAST(utcStamp(frameTime(i)))], tileSize: 256, maxzoom: 11 });
+      MAP.addLayer({ id: `radar-${i}`, type: 'raster', source: `radar-${i}`, paint: { 'raster-opacity': 0, 'raster-opacity-transition': { duration: 0 }, 'raster-fade-duration': 0 } }, 'radar');
+    }
+    loopBuiltFor = radarValid;
+  }
+  function stopLoop() { clearInterval(loopTimer); loopTimer = null; loopBtn.setAttribute('aria-pressed', 'false'); loopBtn.textContent = 'Play last 3 hours'; }
+  function playLoop() {
+    buildLoop();
+    if (+loopSlider.value >= LOOP_STEPS) showFrame(0);
+    loopBtn.setAttribute('aria-pressed', 'true'); loopBtn.textContent = 'Pause';
+    let hold = 0;
+    loopTimer = setInterval(() => {
+      const i = +loopSlider.value;
+      if (i < LOOP_STEPS) return showFrame(i + 1);
+      if (++hold > 3) { hold = 0; showFrame(0); } // linger on the latest frame before starting over
+    }, 500);
+  }
+  loopBtn.addEventListener('click', () => loopTimer ? stopLoop() : playLoop());
+  loopSlider.addEventListener('input', () => { stopLoop(); buildLoop(); showFrame(+loopSlider.value); });
   async function drawRadar() {
-    const on = document.getElementById('show-radar').checked, stamp = document.getElementById('radar-time');
+    const on = document.getElementById('show-radar').checked;
     clearTimeout(radarTimer);
+    document.getElementById('radar-loop').hidden = !on;
     if (!MAP) return;
-    if (!on) { if (MAP.getLayer('radar')) MAP.setLayoutProperty('radar', 'visibility', 'none'); stamp.textContent = ''; return; }
+    if (!on) { stopLoop(); for (const id of frameLayers()) MAP.setLayoutProperty(id, 'visibility', 'none'); document.getElementById('radar-time').textContent = ''; return; }
+    const was = radarValid;
     try { radarValid = (await fetch(RADAR_META, { cache: 'no-store' }).then(r => r.json())).meta.valid; } catch { /* keep the last frame */ }
     const go = () => {
       const tiles = [`${RADAR_TILES}?v=${encodeURIComponent(radarValid)}`];
       if (!MAP.getSource('radar')) {
         MAP.addSource('radar', { type: 'raster', tiles, tileSize: 256, maxzoom: 11, attribution: 'Radar: NWS NEXRAD via <a href="https://mesonet.agron.iastate.edu/">Iowa Environmental Mesonet</a>' });
-        MAP.addLayer({ id: 'radar', type: 'raster', source: 'radar', paint: { 'raster-opacity': .6, 'raster-fade-duration': 0 } }, ['wetlands', 'gauges'].find(id => MAP.getLayer(id)));
-      } else MAP.getSource('radar').setTiles(tiles);
-      MAP.setLayoutProperty('radar', 'visibility', 'visible');
+        MAP.addLayer({ id: 'radar', type: 'raster', source: 'radar', paint: { 'raster-opacity': RADAR_OPACITY, 'raster-opacity-transition': { duration: 0 }, 'raster-fade-duration': 0 } }, ['wetlands', 'gauges'].find(id => MAP.getLayer(id)));
+      } else if (radarValid !== was) MAP.getSource('radar').setTiles(tiles);
+      for (const id of frameLayers()) MAP.setLayoutProperty(id, 'visibility', 'visible');
+      // a new live frame shifts the whole loop window; rebuild it if it was in use
+      if (radarValid !== was && loopBuiltFor) { const playing = !!loopTimer; stopLoop(); buildLoop(); if (playing) playLoop(); }
+      if (!loopTimer) showFrame(+loopSlider.value);
     };
     // 'load' may have fired already, so wait for the style, not the first load
     MAP.isStyleLoaded() ? go() : MAP.once('idle', go);
-    stamp.textContent = radarValid ? `(${new Date(radarValid).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })})` : '';
     radarTimer = setTimeout(drawRadar, 5 * 60 * 1000);
   }
   document.getElementById('show-radar').addEventListener('change', drawRadar);
