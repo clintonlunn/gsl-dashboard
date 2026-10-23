@@ -27,18 +27,6 @@
   const ac = (v) => fmtInt(Math.round(v));
   const round = (v) => v >= 1e4 ? fmtInt(Math.round(v / 1000) * 1000) : fmtInt(Math.round(v / 10) * 10);
 
-  document.head.append(el('style', { textContent: `
-    .lu .lead { font-size: 1.05rem; color: var(--ink); margin: 4px 0 12px; line-height: 1.5; }
-    .lu-controls { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; margin: 0 0 8px; font-size: .875rem; color: var(--ink-2); }
-    .lu-controls label { display: inline-flex; gap: 6px; align-items: center; min-height: 24px; }
-    .lu-chart { width: 100%; height: 360px; }
-    .lu-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: 8px 32px; margin-top: 12px; }
-    .lu-table th, .lu-table td { font-size: 13px; }
-    .lu-table th:first-child, .lu-table td:first-child { text-align: left; }
-    .lu-table tbody th { border-bottom: 1px solid var(--grid-major); font: 500 13px var(--sans); color: var(--ink); text-transform: none; letter-spacing: 0; }
-    .lu-table th:not(:first-child), .lu-table td:not(:first-child) { text-align: right; }
-    .lu h3 { font: 600 .95rem var(--sans); margin: 8px 0 4px; }
-  ` }));
 
   const sel = () => ({ basin: document.getElementById('lu-basin')?.value || '', all: !!document.getElementById('lu-states')?.checked });
   const keep = (basin, utah, s) => (!s.basin || basin === s.basin) && (s.all || utah === 1);

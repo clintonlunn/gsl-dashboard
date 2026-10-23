@@ -13,11 +13,6 @@
   const day = (s) => fmtDay(parseDay(s));
   const days = (list) => list.length > 3 ? `${list.length} days` : list.map(day).join(' and ');
 
-  document.head.append(el('style', { textContent: `
-    .lake-precip-chart { width: 100%; height: 300px; }
-    .lake-precip .lead { font-size: 1rem; color: var(--ink); }
-    .lake-precip .why { font-size: .9rem; color: var(--ink-2); }
-  ` }));
 
   const srcParts = (d) => [
     link('PRISM', PRISM), ' daily precipitation (', d?.dataset?.version || 'AN91d, 4 km', '), Oregon State University, via ',

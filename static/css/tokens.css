@@ -1,0 +1,22 @@
+/* Layout: strip-chart recorder. Plain answer first, ruled sections, instrument detail folded below.
+   Contrast (WCAG 2.1): ink 15.7/14.5, ink-2 6.6/6.5, pen 5.4/7.4, off-bar 3.5/3.5 on paper (light/dark) */
+:root {
+  --paper: #f4f6f3; --ink: #11181c; --ink-2: #4a565d; --rule: #11181c; --grid: #dbe3dd; --grid-major: #bccabf;
+  --pen: #b03f00; --off: #7a8780; --hydro: #2e5f7a; --hydro-fill: #c9d8e0; --healthy: #2f6b3a; --healthy-fill: #cfe3d2; --bad: #a3221b;
+  --bear: #2e5f7a; --weber: #6b4f9e; --jordan: #b03f00; --rain: #5f8fa8;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0c100f; --ink: #d9e2dc; --ink-2: #8c9a92; --rule: #d9e2dc; --grid: #1a2420; --grid-major: #2a3832;
+    --pen: #ff7a2e; --off: #5d6d65; --hydro: #6fa6c4; --hydro-fill: #1f3644; --healthy: #7cc58a; --healthy-fill: #183222; --bad: #f2867f;
+    --bear: #6fa6c4; --weber: #b39ddb; --jordan: #ff7a2e; --rain: #8fb8cc; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0c100f; --ink: #d9e2dc; --ink-2: #8c9a92; --rule: #d9e2dc; --grid: #1a2420; --grid-major: #2a3832;
+  --pen: #ff7a2e; --off: #5d6d65; --hydro: #6fa6c4; --hydro-fill: #1f3644; --healthy: #7cc58a; --healthy-fill: #183222; --bad: #f2867f;
+  --bear: #6fa6c4; --weber: #b39ddb; --jordan: #ff7a2e; --rain: #8fb8cc; color-scheme: dark;
+}

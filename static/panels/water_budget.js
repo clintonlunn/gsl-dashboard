@@ -18,21 +18,6 @@
     extra || '', '. Shared under CC BY-SA by the Utah Department of Natural Resources.',
   ].flat(2);
 
-  document.head.append(el('style', { textContent: `
-    .wb-chart { width: 100%; height: 360px; }
-    .wb-chart.small { height: 200px; }
-    .wb-controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0 0 8px; font-size: .875rem; color: var(--ink-2); }
-    .wb-sub { font: 600 .9375rem var(--sans); color: var(--ink); margin: 18px 0 2px; }
-    .wb-hist details, .wb-gaps details { margin-top: 10px; font-size: .9rem; color: var(--ink-2); }
-    .wb-hist summary { cursor: pointer; color: var(--ink); min-height: 24px; }
-    .wb-hist td, .wb-hist th { font-size: 13px; }
-    .wb-hist td:not(:first-child), .wb-hist th:not(:first-child) { text-align: right; }
-    .wb-gaps td, .wb-gaps th { font-size: 13px; white-space: normal; }
-    .wb-gaps th:nth-child(2), .wb-gaps td:nth-child(2) { text-align: right; }
-    .wb-gaps td.miss { color: var(--bad); font-weight: 600; }
-    .wb-gaps td.sees { color: var(--healthy); font-weight: 600; }
-    .wb-gaps tfoot td { font-weight: 600; color: var(--ink); border-top: 1px solid var(--rule); }
-  ` }));
 
   // fill color and pattern per sector, so the bars don't rely on color alone
   const look = () => {

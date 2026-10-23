@@ -20,21 +20,6 @@
     ...(stations ? [`; ${stations} active stations in Utah and Idaho whose watershed code (HUC) is in the Bear, Weber or Jordan/Provo basins.`] : ['.']),
   ];
 
-  document.head.append(el('style', { textContent: `
-    .snotel-tbl th, .snotel-tbl td { font-size: 13px; padding: 4px 8px; }
-    .snotel-tbl td, .snotel-tbl thead th:not(:first-child) { text-align: right; }
-    .snotel-tbl tbody th { text-align: left; font: 500 13px var(--sans); color: var(--ink); white-space: nowrap; }
-    .snotel-tbl td { font-family: var(--mono); white-space: nowrap; }
-    .snotel-tbl thead th { font-size: 12px; font-weight: 500; vertical-align: bottom; }
-    .snotel-key { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: baseline; }
-    .snotel-fact details, .snotel-hist details { margin-top: 8px; font-size: .8125rem; color: var(--ink-2); }
-    .snotel-fact summary, .snotel-hist summary { cursor: pointer; color: var(--ink); min-height: 24px; }
-    .snotel-fact details ul { columns: 2 12rem; margin: 6px 0 0; padding-left: 1.1rem; }
-    .snotel-chart { width: 100%; height: 400px; }
-    .snotel-toggle { display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0; font-size: .875rem; border: 0; padding: 0; }
-    .snotel-toggle label { display: inline-flex; gap: 6px; align-items: center; min-height: 24px; cursor: pointer; }
-    .snotel-hist td, .snotel-hist thead th:not(:first-child) { text-align: right; }
-  ` }));
 
   const keySwatch = (k) => { const s = el('span', { className: 'snotel-key', style: `background:var(${BASIN_COLOR[k]})` }); s.setAttribute('aria-hidden', 'true'); return s; };
 
