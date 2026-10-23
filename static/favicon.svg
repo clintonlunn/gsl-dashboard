@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- the lake with the orange gauge line from the page's lake chart -->
+  <clipPath id="tile"><rect width="32" height="32" rx="6"/></clipPath>
+  <g clip-path="url(#tile)">
+    <rect width="32" height="32" fill="#11181c"/>
+    <path d="M0 19c4-2 8 2 12 0s8-2 12 0 6 1 8 0v13H0z" fill="#2e5f7a"/>
+    <path d="M5 13c3-1 5 1 8 0s5-3 8-2 4 2 6 1" fill="none" stroke="#e0662a" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>
