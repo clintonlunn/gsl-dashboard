@@ -53,6 +53,11 @@
     </section>
 
     <section class="facts" id="panels-glance" aria-label="Key numbers">
+      <section class="now" aria-labelledby="now-h">
+        <h2 id="now-h">Right now <span class="now-time" id="now-time"></span></h2>
+        <ul class="now-list" id="now-list"><li><span class="sub">Loading live readings…</span></li></ul>
+        <details class="howto"><summary>About these readings</summary><p class="src" id="src-now"></p></details>
+      </section>
       <ul class="cards" aria-label="This period in four numbers">
         <li><a class="card" href="#water" data-go="source-lead"><span class="lbl">Water in</span><span class="val" id="c-in">—</span><span class="sub" id="c-in-sub"></span><span class="more">Where it came from</span></a></li>
         <li><a class="card" href="#water" data-go="ledger-lead"><span class="lbl">Water out</span><span class="val" id="c-out">—</span><span class="sub" id="c-out-sub"></span><span class="more">The full ledger</span></a></li>
