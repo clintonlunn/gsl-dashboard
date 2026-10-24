@@ -300,7 +300,34 @@ def query(con, window):
                 "gsl_mineral_extraction_af": _af(mineral.get(y)),
             })
     out["inflows"], out["inflow_summary"] = _inflows(con)
+    out["recent"] = _recent(con, about["last_wy"])
     return out
+
+
+RECENT_YEARS = 5
+
+
+def _recent(con, last):
+    """Average depletions a year over the newest few water years, for the Farms tab's "where the water goes".
+
+    by_basin: [basin, utah (1/0), sector, af]. Idaho and Wyoming rows are split by sector here too (the History tab
+    only sends their totals). mineral_lake_af is mineral extraction everywhere, i.e. all the lake's evaporation ponds,
+    including the west-side ones the model books under the West Desert basin.
+    """
+    years = list(range(last - RECENT_YEARS + 1, last + 1))
+    var_to_sector = {v: s for s, v in SECTORS.items()}
+    rows = con.execute(f"""
+        select {_basin_sql()} b, (state = 'Utah')::int ut, variable, sum(acre_ft) / {len(years)}
+        from {NAME}_annual
+        where variable in ({",".join("?" * len(SECTORS))}) and water_year in ({",".join("?" * len(years))})
+          and ({" or ".join(f"subarea like '{p}-%'" for p in BASINS)})
+        group by all having sum(acre_ft) > 0 order by 1, 2 desc, 3""", list(SECTORS.values()) + years).fetchall()
+    mineral = _mineral_all(con, years)
+    return {
+        "water_years": [years[0], years[-1]],
+        "by_basin": [[b, ut, var_to_sector[v], _af(af)] for b, ut, v, af in rows],
+        "mineral_lake_af": _af(sum(mineral.values()) / len(years)) if mineral else None,
+    }
 
 
 def history(con):
