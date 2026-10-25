@@ -40,7 +40,8 @@ function renderLedger(D, { rainAf, riverAf, rain, size, lake, wt }) {
   const lead = document.getElementById('ledger-lead');
   if (netAf != null) lead.replaceChildren(netAf >= 0 ? 'More water came in than evaporated: about ' : 'More water evaporated than came in: about ', b(`${pretty(Math.abs(netAf) * GAL_PER_AF)} gallons`), ` ${netAf >= 0 ? 'gained' : 'lost'}, or ${Math.abs(toIn(netAf) ?? 0).toFixed(1)} in of lake depth.`, ...(div ? [' Upstream, canals took at least another ', b(`${pretty(div.af * GAL_PER_AF)} gallons`), '.'] : []));
   else lead.textContent = 'Inflow for this period; there is no evaporation estimate to set against it.';
-  cite('src-ledger', 'rain from ', ACIS(), '; rivers from USGS gauges; evaporation estimated from ', link('gridMET', 'https://www.climatologylab.org/gridmet.html'), ' reference ET × 0.884 (', link('Mohammed & Tarboton 2012', 'https://doi.org/10.1029/2012WR011908'), '); canals from ', link('Utah Division of Water Rights', 'https://waterrights.utah.gov/'), '; reservoirs from ', link('NRCS AWDB', 'https://wcc.sc.egov.usda.gov/awdbRestApi/swagger-ui/index.html'), ' and Water Rights; lake area from ', link('USGS', 'https://doi.org/10.5066/P9DGG75W'), '. Not counted: groundwater, ungauged creeks (about 7% of inflow per the state water budget).');
+  const missed = D.sources?.water_budget?.inflow_summary?.missed_share;
+  cite('src-ledger', 'rain from ', ACIS(), '; rivers from USGS gauges; evaporation estimated from ', link('gridMET', 'https://www.climatologylab.org/gridmet.html'), ' reference ET × 0.884 (', link('Mohammed & Tarboton 2012', 'https://doi.org/10.1029/2012WR011908'), '); canals from ', link('Utah Division of Water Rights', 'https://waterrights.utah.gov/'), '; reservoirs from ', link('NRCS AWDB', 'https://wcc.sc.egov.usda.gov/awdbRestApi/swagger-ui/index.html'), ' and Water Rights; lake area from ', link('USGS', 'https://doi.org/10.5066/P9DGG75W'), `. Not counted: groundwater, ungauged creeks${missed ? ` (about ${Math.round(missed * 100)}% of inflow per the state water budget)` : ''}.`);
 }
 
 // ---------------------------------------------------------------- home cards
@@ -136,8 +137,9 @@ export function render() {
     el('div', { className: 'split', role: 'img', ariaLabel: parts.map(x => `${x.name} ${pct(x.af / total)}`).join(', ') }, ...parts.map(x => { const s = el('span'); s.style.flex = `${x.af} 0 0`; s.style.background = x.color; return s; })),
     el('ul', { className: 'split-key' }, ...parts.map(x => { const i = el('i'); i.style.background = x.color; return el('li', {}, i, el('span', { textContent: x.name }), el('span', { className: 'v', textContent: `${pct(x.af / total)} · ${pretty(x.af * GAL_PER_AF)} gal` })); })));
   const src = document.getElementById('source-lead');
+  const usual = D.usual_rivers?.[0], month = parseDay(win.to).toLocaleString('en-US', { month: 'long' });
   const top = parts.slice().sort((a, c) => c.af - a.af)[0];
-  src.replaceChildren(!total ? 'No readings for this period.' : top.name === 'Rain on the lake' ? 'Most of it fell straight onto the lake as rain. The Bear River is usually the biggest river.' : `The ${top.name} brought the most.${rain ? '' : win.days > cfg.rain_max_days ? ' Rain isn\'t counted for periods over 20 years.' : ' Little rain fell on the lake.'}`);
+  src.replaceChildren(!total ? 'No readings for this period.' : top.name === 'Rain on the lake' ? `Most of it fell straight onto the lake as rain.${usual ? ` The ${usual} is usually the biggest river in ${month}.` : ''}` : `The ${top.name} brought the most.${rain ? '' : win.days > cfg.rain_max_days ? ` Rain isn't counted for periods over ${Math.round(cfg.rain_max_days / 365.25)} years.` : ' Little rain fell on the lake.'}`);
   cite('src-source', ...(rain ? [ACIS(), ' rain reports; '] : []), 'USGS gauges ', ...gaugeLinks(termIds), '; lake area from ', link('USGS tables', 'https://doi.org/10.5066/P9DGG75W'), '.');
 
   // healthy ruler
@@ -155,7 +157,7 @@ export function render() {
     const ticks = []; for (let v = Math.ceil(a / step) * step; v <= z; v += step) ticks.push(at('tick', v), at('tick-l', v, { textContent: fmtInt(v) }));
     ruler.replaceChildren(el('span', { className: 'axis' }), band, at('band-l', (lo + hi) / 2, { textContent: 'Healthy' }), ...ticks,
       at('low', low), at('low-l', low, { textContent: 'Record low' }), at('now', level), at('now-l', level, { textContent: `Now ${fmt1(level)} ft` }));
-    ruler.setAttribute('aria-label', `The lake is at ${fmt1(level)} feet. The healthy range is ${lo} to ${hi} feet. The record low is ${low} feet.`);
+    ruler.setAttribute('aria-label', `The lake is at ${fmt1(level)} feet. The healthy range is ${lo} to ${hi} feet. The record low is ${low} feet${cfg.record_low_day ? `, on ${fmtDay(parseDay(cfg.record_low_day), true)}` : ''}.`);
   } else { hl.textContent = 'No lake level readings.'; ruler.replaceChildren(); }
   cite('src-health', 'USGS gauge ', link(lakeId, USGS(lakeId)), '; healthy range from the ', link('Utah FFSL elevation matrix', 'https://ffsl.utah.gov/wp-content/uploads/Elevation_Matrix_3_1_13Cropped.pdf'), ' and ', link('Strike Team', 'https://wilkescenter.utah.edu/great-salt-lake/strike-team/'), '; gallons to healthy from ', link('USGS volume tables', 'https://doi.org/10.5066/P9DGG75W'), '; record low from ', link('USGS', 'https://www.usgs.gov/centers/ut-water/science/great-salt-lake-elevations'), '.');
 

@@ -51,7 +51,7 @@ VALLEY_MAX_FT = 4500  # rain stations below this sit near lake level and count t
 
 # Reference levels, ft NGVD 1929
 HEALTHY_FT = (4198, 4205)  # Utah FFSL elevation matrix healthy band (Strike Team target, 2024 Strategic Plan)
-RECORD_LOW_FT = 4188.5  # south arm, Nov 7 2022 (USGS)
+RECORD_LOW_FT = 4188.5  # south arm, Nov 7 2022 (USGS); only a fallback, record_low() reads it from the daily record
 
 DEFAULT_DAYS = 7
 BASELINE_DAYS = 14  # "normal" = median of the 14 days before the window starts
@@ -511,6 +511,8 @@ def query_window(from_day, to_day):
         out["refreshed_at"] = meta_get(con, "refreshed_at")
         img = meta_get(con, "imagery")
         out["imagery"] = json.loads(img) if img else None
+        low = record_low(con)
+        out["usual_rivers"] = usual_rivers(con, to_day.month)
         out["sources"] = {}
         for src in sources.ALL:
             try:
@@ -520,7 +522,7 @@ def query_window(from_day, to_day):
     out["window"] = {"from": from_day.isoformat(), "to": to_day.isoformat(), "days": days, "resolution": res,
                      "is_default": to_day == dt.date.today() and days == DEFAULT_DAYS}
     out["config"] = {"baseline_days": BASELINE_DAYS, "default_days": DEFAULT_DAYS, "healthy_ft": HEALTHY_FT,
-                     "record_low_ft": RECORD_LOW_FT, "valley_max_ft": VALLEY_MAX_FT, "event_rain_in": EVENT_RAIN_IN,
+                     **low, "valley_max_ft": VALLEY_MAX_FT, "event_rain_in": EVENT_RAIN_IN,
                      "hourly_max_days": HOURLY_MAX_DAYS, "rain_max_days": RAIN_MAX_DAYS,
                      # UGS addresses come from sources/_ugs.py so the page follows any override
                      "ugs": {"swb_stac": sources._ugs.SWB_STAC, "swb_app": sources._ugs.SWB_APP,
@@ -529,9 +531,28 @@ def query_window(from_day, to_day):
     return out
 
 
+def record_low(con):
+    """Lowest daily lake level on record and its day, from the gauge's daily values, so a new low shows up on its own."""
+    r = con.execute("select min(value), arg_min(\"day\", value) from dv where site_id = ? and param = '62614'", [LAKE_SITE]).fetchone()
+    if r is None or r[0] is None:
+        return {"record_low_ft": RECORD_LOW_FT, "record_low_day": "2022-11-07"}
+    return {"record_low_ft": round(r[0], 2), "record_low_day": r[1].isoformat()}
+
+
+def usual_rivers(con, month):
+    """Rivers ranked by their median daily flow in this calendar month over the whole record, for "usually the
+    biggest". Days count only when every mouth gauge of that river reported, so the Jordan's two outlets add up."""
+    return [r[0] for r in con.execute("""
+        with n as (select river, count(*) k from sites where role = 'terminal' group by 1),
+             d as (select s.river, "day", sum(value) cfs, count(*) k from dv join sites s using (site_id)
+                   where param = '00060' and s.role = 'terminal' and month("day") = ? group by all)
+        select river from d join n using (river) where d.k = n.k group by 1 order by median(cfs) desc""", [month]).fetchall()]
+
+
 def query_history():
     with duckdb.connect(DB_PATH) as con:
         out = run(con, HISTORY_SQL, {"lake": LAKE_SITE})
+        low = record_low(con)
         out["sources"] = {}
         for src in sources.ALL:
             if hasattr(src, "history"):
@@ -539,7 +560,7 @@ def query_history():
                     out["sources"][src.NAME] = src.history(con)
                 except Exception as e:  # noqa: BLE001
                     out["sources"][src.NAME] = {"error": str(e)}
-    out["config"] = {"healthy_ft": HEALTHY_FT, "record_low_ft": RECORD_LOW_FT}
+    out["config"] = {"healthy_ft": HEALTHY_FT, **low}
     return out
 
 
