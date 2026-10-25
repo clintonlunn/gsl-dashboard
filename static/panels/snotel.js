@@ -44,7 +44,10 @@
       const asOf = live.map(x => x.as_of).sort().pop(), withPct = live.filter(x => x.pct_median != null);
       if (live.every(x => x.off_season)) {
         const last = live.map(x => x.last_wy.apr1_pct).filter(v => v != null);
-        return { val: 'Off season', sub: last.length ? `Last winter: ${pct(last.reduce((s, v) => s + v, 0) / last.length)} of normal on April 1.` : 'Snow usually starts building in November.' };
+        // November and December: the season has begun, but a normal year doesn't have enough snow yet for a percent
+        const early = [11, 12].includes(parseDay(asOf).getMonth() + 1);
+        return { val: early ? 'Too early' : 'Off season', sub: early ? 'Snow is just starting to build; percent of normal comes later.'
+          : last.length ? `Last winter: ${pct(last.reduce((s, v) => s + v, 0) / last.length)} of normal on April 1.` : 'Snow usually starts building in November.' };
       }
       if (withPct.length) { const avg = withPct.reduce((s, x) => s + x.pct_median, 0) / withPct.length; return { val: pct(avg), sub: `of normal for ${when(asOf)}; ${outlook(avg)}.` }; }
       return { val: 'Too early', sub: `Normal snowpack for ${when(asOf)} is still small.` };
@@ -70,8 +73,10 @@
         const lastAvg = lastPcts.length ? lastPcts.reduce((s, v) => s + v, 0) / lastPcts.length : null;
         const snowNow = Math.max(...live.map(x => x.swe_in ?? 0));
         const m = parseDay(asOf).getMonth() + 1;
-        const next = m >= 10 || m <= 2 ? 'Snow usually starts building in November.' : 'Snow usually starts building again in November.';
-        lead.replaceChildren(`It's ${when(asOf)}, between snow seasons: the snow sensors show ${snowNow < 0.5 ? 'essentially no snow' : `only ${inch(snowNow)} of water in the snow`}, which is normal for this time of year, so a "percent of normal" would mean little. ${next}`,
+        const early = m === 11 || m === 12;
+        const next = early ? `A percent of normal starts once a normal year has ${d.min_median_in} inch of water in the snow by this date.`
+          : m >= 10 || m <= 2 ? 'Snow usually starts building in November.' : 'Snow usually starts building again in November.';
+        lead.replaceChildren(`It's ${when(asOf)}, ${early ? 'early in the snow season' : 'between snow seasons'}: the snow sensors show ${snowNow < 0.5 ? 'essentially no snow' : `only ${inch(snowNow)} of water in the snow`}, which is normal for this time of year, so a "percent of normal" would mean little. ${next}`,
           ...(lastAvg != null ? [` Last winter (water year ${L.water_year}), snowpack on April 1 was `, b(pct(lastAvg)), ` of normal.`] : []));
       } else if (withPct.length) {
         const avg = withPct.reduce((s, x) => s + x.pct_median, 0) / withPct.length;
