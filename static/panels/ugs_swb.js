@@ -21,7 +21,7 @@
 
   // ------------------------------------------------------------ At a glance: how wet the ground is
   G.register({
-    id: 'ugs_swb', tab: 'water', order: 40,
+    id: 'ugs_swb', topic: 'ground', view: 'summary', order: 40,
     mount(slot) {
       const root = el('div', { className: 'fact', id: 'ugs-swb-fact' },
         el('h2', { textContent: 'How wet the ground is', id: 'ugs-swb-h' }),
@@ -71,7 +71,7 @@
       bars.setAttribute('role', 'img');
       // on narrow screens the range label can run past the track; drop it below the range instead (to its left it hit the value)
       requestAnimationFrame(() => bars.querySelectorAll('.ugs-swb-val').forEach(v => {
-        // measured only when shown; a hidden tab reports 0 widths, so phones always take the lower spot
+        // measured only when shown; a hidden panel reports 0 widths, so phones always take the lower spot
         const track = v.parentElement.getBoundingClientRect();
         if (hasRange && (matchMedia('(max-width: 599px)').matches || v.getBoundingClientRect().right > track.right)) {
           v.style.left = `${(B.ens_min_pct / max) * 100}%`; v.style.top = '18px';
@@ -107,7 +107,7 @@
 
   // ------------------------------------------------------------ History: basin water balance since 2005
   G.register({
-    id: 'ugs_swb', tab: 'history', order: 60,
+    id: 'ugs_swb', topic: 'ground', view: 'history', order: 60,
     mount(slot) {
       const root = el('section', { className: 'section ugs-swb-hist', id: 'ugs-swb-hist' },
         el('h2', { id: 'ugs-swb-hist-h', textContent: 'Basin water balance since 2005' }),

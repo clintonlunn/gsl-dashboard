@@ -17,7 +17,7 @@
 
 
   G.register({
-    id: 'water_rights', tab: 'ag', order: 30,
+    id: 'water_rights', topic: 'farms', view: 'detail', order: 30,
     mount(slot) {
       const basin = el('select', { id: 'wr-basin' }, el('option', { value: '', textContent: 'All four basins' }),
         ...BASINS.map(k => el('option', { value: k, textContent: k })));

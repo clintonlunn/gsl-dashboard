@@ -1,7 +1,7 @@
 import { base, chart, charts } from './charts.js';
-import { showTab } from './main.js';
+import { setKnobs } from './main.js';
 import { renderPanels } from './panels.js';
-import { form, fromIn, syncPreset, toIn } from './period.js';
+import { form, fromIn, toIn } from './period.js';
 import { STATIC, state } from './state.js';
 import { RIVER_COLOR, USGS, cite, css, fmt1, fmtDay, fmtInt, gaugeLinks, isoDay, link, parseDay } from './util.js';
 
@@ -50,10 +50,10 @@ export function drawHistory() {
   a.aria.decal = { show: true };
   chart('chart-annual').setOption(a, true);
   cite('src-annual', 'USGS daily values, gauges ', ...gaugeLinks(['10126000', '10141000', '10170500', '10172600']), '.');
-  renderPanels('history');
+  renderPanels(true);
 }
 document.getElementById('hist-apply').addEventListener('click', () => {
   if (!histZoom) return;
-  fromIn.value = isoDay(histZoom[0]); toIn.value = isoDay(histZoom[1]); syncPreset(); if (!STATIC) form.requestSubmit();
-  showTab(document.getElementById('tab-glance'), true);
+  fromIn.value = isoDay(histZoom[0]); toIn.value = isoDay(histZoom[1]);
+  setKnobs({ hist: false }); if (!STATIC) form.requestSubmit();
 });

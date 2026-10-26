@@ -333,7 +333,7 @@ def query(con, window):
     # annual rain + snow the model puts on the lake, a fallback when the window has no rain figure
     p = con.execute(f"select sum(acre_ft) from {WB} where subarea = '00-06-01' and variable = 'Precipitation' and water_year = ?", [y]).fetchone()
     out["budget"]["gsl_precip_af"] = _r(p[0]) if p else None
-    out["series"] = _series(B)  # the tab draws its chart from the window payload; /api/history isn't loaded there
+    out["series"] = _series(B)  # the Farms summary draws its chart from the window payload; /api/history isn't loaded there
     return out
 
 

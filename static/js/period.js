@@ -1,4 +1,5 @@
-import { load, showError, start } from './main.js';
+import { knobs } from './knobs.js';
+import { load, setKnobs, showError } from './main.js';
 import { STATIC } from './state.js';
 import { addDays, fmtDay, isoDay, parseDay } from './util.js';
 
@@ -8,6 +9,7 @@ export const fromIn = document.getElementById('from'), toIn = document.getElemen
 export const today = () => STATIC ? STATIC.today : isoDay(new Date());
 export const daysAgo = (n) => isoDay(addDays(parseDay(today()), -n));
 export function syncPreset() {
+  if (knobs.hist) { preset.value = 'all'; return; }
   const match = [...preset.options].find(o => o.dataset.from === fromIn.value && o.dataset.to === toIn.value);
   preset.value = match ? match.value : STATIC ? '' : 'custom';
 }
@@ -29,7 +31,10 @@ export function addEventPresets(events) {
 }
 preset.addEventListener('change', () => {
   const o = preset.selectedOptions[0];
+  // "Since 1847" swaps the period's sections for the long record; any other choice brings them back
+  if (o.value === 'all') return setKnobs({ hist: true });
+  if (knobs.hist) setKnobs({ hist: false });
   if (o.dataset.from) { fromIn.value = o.dataset.from; toIn.value = o.dataset.to; form.requestSubmit(); }
 });
 [fromIn, toIn].forEach(i => i.addEventListener('input', syncPreset));
-form.addEventListener('submit', (e) => { e.preventDefault(); load().catch(showError); });
+form.addEventListener('submit', (e) => { e.preventDefault(); if (knobs.hist) setKnobs({ hist: false }); load().catch(showError); });

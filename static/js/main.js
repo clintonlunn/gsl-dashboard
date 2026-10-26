@@ -1,11 +1,13 @@
-// Page entry: period form, data loading and tabs. util.js has helpers, state.js the shared data and API, charts.js the
-// ECharts wrappers, map.js the map and radar, now.js the live readings, home.js the first two tabs, history.js the history tab, panels.js the plug-ins.
+// Page entry: data loading and the knobs. util.js has helpers, state.js the shared data and API, charts.js the ECharts
+// wrappers, map.js the map and radar, now.js the live readings, home.js the period's sections, history.js the long record,
+// knobs.js which blocks show, panels.js the plug-ins.
 import { chart, charts, emptyChart, measure } from './charts.js';
 import { drawHistory } from './history.js';
 import { render, windowText } from './home.js';
+import { knobQuery, knobs, readKnobs, showKnobs } from './knobs.js';
 import { resizeMap } from './map.js';
 import { drawNow } from './now.js';
-import { renderPanels, stackTables } from './panels.js';
+import { stackTables } from './panels.js';
 import { addEventPresets, daysAgo, form, fromIn, preset, setPresetDates, syncPreset, toIn, today } from './period.js';
 import { STATIC, api, state } from './state.js';
 import { el, link } from './util.js';
@@ -15,8 +17,7 @@ export const status = document.getElementById('status');
 const FONTS = Promise.race([Promise.all(['12px "IBM Plex Mono"', '500 12px "IBM Plex Mono"', '13px "IBM Plex Sans"'].map(f => document.fonts.load(f))),
   new Promise(r => setTimeout(r, 3000))]).catch(() => {});
 export async function load() {
-  const q = new URLSearchParams({ from: fromIn.value, to: toIn.value });
-  history.replaceState(null, '', `?${q}${location.hash}`);
+  history.replaceState(null, '', knobQuery(fromIn.value, toIn.value));
   status.textContent = 'Loading data.';
   document.getElementById('answer-h').textContent = 'Loading…';
   const r = await api.data(fromIn.value, toIn.value); const j = await r.json();
@@ -34,59 +35,36 @@ export function showError(e) {
 
 setPresetDates();
 const qs = new URLSearchParams(location.search);
+readKnobs(qs, location.hash);
 fromIn.value = qs.get('from') || daysAgo(6); toIn.value = qs.get('to') || today();
 fromIn.max = toIn.max = today();
 syncPreset();
+showKnobs();
 load().catch(showError);
 const loadHistory = () => state.HIST ? Promise.resolve() : api.history().then(r => r.json()).then(j => { state.HIST = j; })
   .catch(() => emptyChart('chart-history', 'Couldn\'t load the history.'));
+if (knobs.hist) loadHistory().then(drawHistory);
 
-// tabs: three levels of detail; arrow keys move between them, the choice is kept in the link
-const tabs = [...document.querySelectorAll('[role="tab"]')];
-export function showTab(tab, focus) {
-  tabs.forEach(t => {
-    const on = t === tab;
-    t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1;
-    document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
-  });
-  if (focus) tab.focus();
-  const name = tab.id.replace('tab-', '');
-  history.replaceState(null, '', `${location.search}${name === 'glance' ? '' : '#' + name}`);
-  requestAnimationFrame(stackTables); // tables in a tab that was hidden couldn't be measured
-  if (name === 'history') loadHistory().then(() => { drawHistory(); Object.values(charts).forEach(c => c.resize()); });
-  if (name === 'details') render();
-  if (name === 'ag') renderPanels('ag');
-  if (name === 'glance') resizeMap();
-  requestAnimationFrame(() => Object.values(charts).forEach(c => c.resize()));
+// knobs: a change shows the matching blocks and draws them again, since charts drawn while hidden have no size
+export function setKnobs(change) {
+  Object.assign(knobs, change);
+  showKnobs(); syncPreset();
+  history.replaceState(null, '', knobQuery(fromIn.value, toIn.value));
+  render();
+  if (knobs.hist) loadHistory().then(drawHistory);
+  requestAnimationFrame(() => { stackTables(); Object.values(charts).forEach(c => c.resize()); if (knobs.view === 'map') resizeMap(); });
 }
-tabs.forEach((t, i) => {
-  t.addEventListener('click', () => showTab(t));
-  t.addEventListener('keydown', (e) => {
-    const k = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
-    if (k) { e.preventDefault(); showTab(tabs[(i + k + tabs.length) % tabs.length], true); }
-    if (e.key === 'Home') { e.preventDefault(); showTab(tabs[0], true); }
-    if (e.key === 'End') { e.preventDefault(); showTab(tabs[tabs.length - 1], true); }
-  });
+for (const id of ['topic', 'view']) document.getElementById(id).addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (b && b.value !== knobs[id]) setKnobs({ [id]: b.value });
 });
 document.getElementById('sources-btn').addEventListener('click', () => {
-  showTab(document.getElementById('tab-details'));
-  const f = document.querySelector('footer.sources');
+  const about = document.getElementById('about'), f = about.querySelector('footer.sources');
+  about.open = true;
   f.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   f.querySelector('h2').setAttribute('tabindex', '-1'); f.querySelector('h2').focus({ preventScroll: true });
 });
-export const start = tabs.find(t => `#${t.id.replace('tab-', '')}` === location.hash);
-if (start) showTab(start);
-
-// the glance view sizes itself to whatever is left under the header, period bar and tabs
-const chrome = () => {
-  const top = document.getElementById('panel-glance').getBoundingClientRect().top + window.scrollY;
-  // plus whatever sits below main (page padding), so the glance view ends at the bottom of the window
-  const tail = document.body.scrollHeight - (document.querySelector('main').getBoundingClientRect().bottom + window.scrollY);
-  document.documentElement.style.setProperty('--chrome', `${Math.ceil(top + Math.max(tail, 0))}px`);
-  resizeMap();
-};
-chrome(); addEventListener('resize', chrome);
-document.fonts?.ready.then(() => { render(); if (!document.getElementById('panel-history').hidden) drawHistory(); });
+document.fonts?.ready.then(() => { render(); if (knobs.hist) drawHistory(); });
 export const btn = document.getElementById('refresh');
 if (STATIC) {
   // published copy: data rebuilds on a schedule, and only exported periods exist
@@ -106,7 +84,7 @@ new ResizeObserver(() => { clearTimeout(resizeTimer); resizeTimer = setTimeout((
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { render(); drawHistory(); });
 if (!STATIC) setInterval(() => load().catch(() => {}), 15 * 60 * 1000);
 // the published copy's data files belong to one build; when a newer one is out, reload on coming back to the tab
-// (the tab is kept in the link) rather than under someone who is reading
+// (the knobs are kept in the link) rather than under someone who is reading
 else document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState !== 'visible') return;
   try {

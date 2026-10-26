@@ -25,7 +25,7 @@
 
   // ------------------------------------------------------------ At a glance
   G.register({
-    id: 'snotel', tab: 'water', order: 50,
+    id: 'snotel', topic: 'sky', view: 'summary', order: 50,
     mount(slot) {
       const root = el('div', { className: 'fact snotel-fact', id: 'snotel-fact' },
         el('h2', { id: 'snotel-h', textContent: 'Snow in the mountains' }),
@@ -114,7 +114,7 @@
   // ------------------------------------------------------------ History: April 1 snowpack each year
   let metric = 'pct';
   G.register({
-    id: 'snotel_hist', tab: 'history', order: 55,
+    id: 'snotel_hist', topic: 'sky', view: 'history', order: 55,
     mount(slot) {
       const tog = el('fieldset', { className: 'snotel-toggle' }, el('legend', { className: 'sr-only', textContent: 'Show snowpack as' }),
         ...[['pct', 'Percent of normal'], ['in', 'Inches of water']].map(([v, t]) => el('label', {},

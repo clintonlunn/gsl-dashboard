@@ -1,7 +1,5 @@
 /* Narrow screens. Loaded last so these win over the rules above at the same specificity. */
-/* phones: tabs take their own row under the title and scroll sideways rather than wrap */
-@media (max-width: 899px) { .tabs { order: 3; flex: 1 0 100%; overflow-x: auto; scrollbar-width: none; } .tabs [role="tab"] { white-space: nowrap; } }
-/* phones: short tab names so all four fit, and the update time shares a row with the buttons */
+/* phones: the update time shares a row with the buttons */
 /* phones: cells wrap; wide tables (5+ columns, .stack) turn into one labelled card per row */
 @media (max-width: 599px) {
   /* panels set nowrap on their own cells; on a phone wrapping beats sideways scrolling */
@@ -9,8 +7,8 @@
   /* screen-reader tables ignore their 1px width and would widen the page */
   main { overflow-x: clip; }
   thead th { vertical-align: bottom; }
-  .panel select { max-width: calc(100% - 8px); min-width: 0; }
-  .panel label:has(select) { max-width: 100%; min-width: 0; flex-wrap: wrap; }
+  #stage select, .knobs select { max-width: calc(100% - 8px); min-width: 0; }
+  #stage label:has(select) { max-width: 100%; min-width: 0; flex-wrap: wrap; }
   table.stack { min-width: 0 !important; table-layout: auto !important; }
   table.stack, table.stack > tbody, table.stack > tfoot, table.stack > * > tr { display: block; width: auto; }
   table.stack > thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -28,7 +26,6 @@
   /* short numbers with units ("+1.93 in", "282 mg/L") stay on one line */
   table:not(.stack) .nw { white-space: nowrap !important; }
 }
-@media (max-width: 1499px) { .tab-more { display: none; } }
 @media (max-width: 599px) { header .bar { flex: 1 0 100%; padding-top: 0; } #asof { flex: 1; font-size: .8125rem; } }
-@media (max-width: 599px) { .tabs [role="tab"] { padding-inline: 7px; font-size: .875rem; } }
+@media (max-width: 599px) { .seg button { padding-inline: 8px; font-size: .8125rem; } }
 @media (max-width: 599px) { .card .val { font-size: 1.25rem; } }

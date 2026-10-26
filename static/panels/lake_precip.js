@@ -23,7 +23,7 @@
   ];
 
   G.register({
-    id: 'lake_precip', tab: 'details', order: 25,
+    id: 'lake_precip', topic: 'sky', view: 'detail', order: 25,
     mount(slot) {
       const root = el('section', { className: 'section lake-precip', id: 'lake-precip' },
         el('h2', { id: 'lake-precip-h', textContent: 'Rain on the lake from weather grids' }),

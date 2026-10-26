@@ -1,5 +1,5 @@
 // Where the water goes: the water used up each year in the lake's four river basins, by use, before it can reach
-// the lake. A short Farms-tab summary of the Utah Water Budget model; the History tab has the year-by-year bars.
+// the lake. A short Farms summary of the Utah Water Budget model; Water budget, Since 1847 has the year-by-year bars.
 // Data rides on the water_budget source (DATA.sources.water_budget.recent):
 //   water_years      [first, last] averaged
 //   by_basin         [basin, utah (1/0), sector, acre-ft a year]
@@ -21,7 +21,7 @@
   const af = (v) => v >= 1e6 ? `${(v / 1e6).toFixed(2)} million` : fmtInt(Math.round(v / 1000) * 1000);
 
   G.register({
-    id: 'water_use', tab: 'ag', order: 5,
+    id: 'water_use', topic: 'farms', view: 'summary', order: 5,
     mount(slot) {
       const basin = el('select', { id: 'wu-basin' }, el('option', { value: '', textContent: 'All four basins' }),
         ...BASINS.map(k => el('option', { value: k, textContent: k })));
@@ -113,6 +113,6 @@
 
     cite('wu-src', 'Utah Division of Water Resources, ', link('Utah Water Budget', d.hub_url || HUB),
       ...(d.service_url ? [' (', link(d.service, d.service_url), ')'] : []), `, water years ${y0}–${y1}, CC BY-SA. Lake decline: `,
-      link('Wurtsbaugh et al. 2017, Nature Geoscience', STUDY), '. Year-by-year bars are on the History tab.');
+      link('Wurtsbaugh et al. 2017, Nature Geoscience', STUDY), '. For year-by-year bars, pick Water budget and Since 1847.');
   }
 })();

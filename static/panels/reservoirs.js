@@ -34,7 +34,7 @@
 
   // ------------------------------------------------------------ At a glance
   G.register({
-    id: 'reservoirs', tab: 'water', order: 45,
+    id: 'reservoirs', topic: 'reservoirs', view: 'summary', order: 45,
     mount(slot) {
       const root = el('div', { className: 'fact', id: 'res-fact' },
         el('h2', { textContent: 'Water held in reservoirs', id: 'res-h' }),
@@ -103,7 +103,7 @@
 
   // ------------------------------------------------------------ Details: every reservoir
   G.register({
-    id: 'reservoirs_table', tab: 'details', order: 45,
+    id: 'reservoirs_table', topic: 'reservoirs', view: 'detail', order: 45,
     mount(slot) {
       const root = el('section', { className: 'section res-detail', id: 'res-detail' },
         el('h2', { id: 'res-detail-h', textContent: 'Each reservoir upstream of the lake' }),
@@ -157,7 +157,7 @@
 
   // ------------------------------------------------------------ History: month-end storage by river system
   G.register({
-    id: 'reservoirs_hist', tab: 'history', order: 58,
+    id: 'reservoirs_hist', topic: 'reservoirs', view: 'history', order: 58,
     mount(slot) {
       const root = el('section', { className: 'section res-hist', id: 'res-hist' },
         el('h2', { id: 'res-hist-h', textContent: 'Water held in upstream reservoirs, month by month' }),

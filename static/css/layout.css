@@ -1,17 +1,22 @@
-/* Page frame: header and tabs, period form, the panels, and how the home tab fills one screen. */
-.panel[hidden] { display: none !important; }
+/* Page frame: header, the knobs, the stage the knobs fill, and method and sources at the foot. */
+/* blocks the knobs hide stay hidden whatever display their own rules give them */
+main [data-view][hidden], #stage-facts[hidden] { display: none !important; }
 .wrap { padding: 20px clamp(16px, 3vw, 48px) 48px; }
 header { display: flex; flex-wrap: wrap; gap: 0 16px; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--rule); }
 header .brand, header .bar { padding: 8px 0; }
 .brand { font: 600 1rem var(--mono); letter-spacing: .06em; text-transform: uppercase; margin: 0; }
 .bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font: .875rem var(--mono); color: var(--ink-2); }
-.tabs { display: flex; gap: 0; align-self: stretch; align-items: flex-end; margin-bottom: -2px; }
-.tabs [role="tab"] { border: 0; border-bottom: 3px solid transparent; background: none; color: var(--ink-2); font: 600 .9375rem var(--sans); padding: 10px 16px 8px; min-height: 44px; }
-.tabs [role="tab"]:hover { color: var(--ink); background: none; }
-.tabs [role="tab"][aria-selected="true"] { color: var(--ink); border-bottom-color: var(--pen); }
-.period { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; padding: 14px 0; border-bottom: 1px solid var(--grid-major); }
+/* knobs: topic and view are button rows, the period is the form between them */
+.knobs { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: end; padding: 14px 0; border-bottom: 1px solid var(--grid-major); }
+.knob { display: grid; gap: 4px; min-width: 0; }
+.knob-l { font-size: .8125rem; color: var(--ink-2); }
+.seg { display: flex; flex-wrap: wrap; }
+.seg button { min-height: 44px; margin: 0 -1px -1px 0; font-weight: 500; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.period { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
 .period label { display: grid; gap: 2px; font-size: .8125rem; color: var(--ink-2); }
-.period select { max-width: 100%; }
+/* rain-event presets have long names; keep the select from pushing View onto its own row */
+.period select { width: 17rem; max-width: 100%; }
 .period [hidden] { display: none !important; }
 
 .answer { padding: 24px 0; border-bottom: 1px solid var(--rule); }
@@ -23,29 +28,19 @@ header .brand, header .bar { padding: 8px 0; }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); border-bottom: 1px solid var(--rule); }
 .fact { padding: 18px 20px 20px; border-left: 1px solid var(--grid-major); min-width: 0; }
 .fact:first-child { border-left: 0; padding-left: 0; }
-#panels-glance .fact { border-left: 0; padding-inline: 0; }
-#panels-water { grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); row-gap: 8px; }
+/* right now and the four cards, above whatever the knobs pick */
+.top { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); column-gap: 32px; border-bottom: 1px solid var(--rule); }
+#stage-facts { grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); column-gap: 32px; row-gap: 8px; }
+#stage-facts .fact { border-left: 0; padding-inline: 0; }
+#stage-empty { padding: 24px 0; color: var(--ink-2); }
+.about { padding: 16px 0 0; }
+.about > summary { cursor: pointer; font: 600 .95rem var(--sans); padding: 12px 0; }
 .fact h2, .section h2 { font: 600 1.05rem/1.3 var(--sans); margin: 0; }
 .fact .lead { margin: 4px 0 12px; color: var(--ink-2); font-size: .95rem; }
 .fact .lead b { color: var(--ink); font-family: var(--mono); font-weight: 600; }
 .section { padding: 20px 0; border-bottom: 1px solid var(--rule); }
 .section .note { font-size: .95rem; color: var(--ink-2); margin: 4px 0 12px; }
+.map { height: clamp(380px, 62vh, 720px); }
 .wide2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 38rem), 1fr)); column-gap: 32px; }
 .wide2 > .section, .grid2 > .section { min-width: 0; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); column-gap: 28px; }
-/* At a glance fits one screen on a laptop or larger: answer and facts on the left, map over lake chart on the right */
-@media (min-width: 1100px) and (min-height: 680px) {
-  .glance { display: grid; grid-template-columns: minmax(340px, 31rem) 1fr; grid-template-rows: auto 1fr; column-gap: 32px;
-    height: calc(100dvh - var(--chrome, 160px)); min-height: 560px; }
-  .glance .answer { grid-column: 1; grid-row: 1; padding: 16px 0 12px; }
-  .glance .answer h1 { font-size: clamp(1.4rem, 2.2vw, 2rem); }
-  .glance .answer p { font-size: 1rem; }
-  .glance .facts { grid-column: 1; grid-row: 2; display: block; position: relative; overflow-y: auto; overflow-x: hidden; border-bottom: 0; min-height: 0; padding-right: 6px; }
-  .glance .fact { border-left: 0; padding: 12px 0; border-top: 1px solid var(--grid-major); }
-  .glance .cards { padding-top: 4px; }
-  .glance .visuals { grid-column: 2; grid-row: 1 / 3; display: grid; grid-template-columns: 1fr; grid-template-rows: minmax(0, 3fr) minmax(0, 2fr); min-height: 0; }
-  .glance .visuals > .section { display: flex; flex-direction: column; min-height: 0; padding: 12px 0; }
-  .glance .visuals .note { margin-bottom: 6px; }
-  .glance .map { flex: 1; height: auto; min-height: 220px; }
-  .glance #chart-lake-level { flex: 1; height: auto; min-height: 140px; }
-}

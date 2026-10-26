@@ -10,7 +10,7 @@
 
 
   G.register({
-    id: 'ugs_brine', tab: 'history', order: 70,
+    id: 'ugs_brine', topic: 'lake', view: 'history', order: 70,
     mount(slot) {
       const root = el('section', { className: 'section ugs-brine' },
         el('h2', { id: 'ugs-brine-h', textContent: 'How salty the lake has been, 1966–2011' }),

@@ -32,7 +32,7 @@
 
   // ------------------------------------------------------------ Details: this window
   G.register({
-    id: 'whole_lake', tab: 'details', order: 15,
+    id: 'whole_lake', topic: 'lake', view: 'detail', order: 15,
     mount(slot) {
       const root = el('section', { className: 'section', id: 'wl' },
         el('h2', { id: 'wl-h', textContent: 'The whole lake: north arm, bays and the causeway' }),
@@ -182,7 +182,7 @@
 
   // ------------------------------------------------------------ History: north vs south since 1966
   G.register({
-    id: 'whole_lake_history', tab: 'history', order: 15,
+    id: 'whole_lake_history', topic: 'lake', view: 'history', order: 15,
     mount(slot) {
       const root = el('section', { className: 'section', id: 'wl-hist' },
         el('h2', { id: 'wl-hist-h', textContent: 'North arm vs south arm since 1966' }),

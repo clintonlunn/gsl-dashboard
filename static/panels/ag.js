@@ -38,7 +38,7 @@
   // ------------------------------------------------------------ one panel: comparisons, chart, words, caveats
   let LAST = null;
   G.register({
-    id: 'ag', tab: 'ag', order: 10,
+    id: 'ag', topic: 'farms', view: 'summary', order: 10,
     mount(slot) {
       document.getElementById('ag-empty')?.remove();
       const sel = el('select', { id: 'ag-basin' },
@@ -86,8 +86,6 @@
       drawCaveats(d);
     },
   });
-  // the page renders the "ag" tab only when it is shown; if it was opened before this file loaded, ask again
-  if (G.isShown('ag')) document.getElementById('tab-ag')?.click();
 
   function drawCompare(d, D) {
     const A = d.refs.alfalfa, H = d.refs.household, ac = d.acres, bu = d.budget;
