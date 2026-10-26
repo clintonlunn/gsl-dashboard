@@ -18,9 +18,9 @@ import urllib.request
 from playwright.sync_api import TimeoutError as PlaywrightTimeout, sync_playwright
 
 AXE = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.2/axe.min.js"
-TOPICS = ("lake", "budget", "rivers", "sky", "reservoirs", "ground", "farms")
-# (topic, view, since 1847): each topic's summary and detail, the map once, and each topic's long record
-KNOBS = [(t, v, False) for t in TOPICS for v in ("summary", "detail")] + [("lake", "map", False)] + [(t, "summary", True) for t in TOPICS]
+TOPICS = ("glance", "lake", "budget", "rivers", "sky", "reservoirs", "ground", "farms")
+# (topic, view, since 1847): the glance (which has no view), each topic's summary and detail, the map once, and each topic's long record
+KNOBS = [("glance", None, False)] + [(t, v, False) for t in TOPICS[1:] for v in ("summary", "detail")] + [("lake", "map", False)] + [(t, "summary", True) for t in TOPICS[1:]]
 # farm figures cover recent years only, so the long record has nothing for them by design
 EMPTY_OK = {("farms", "summary", True)}
 SIZES = {"desktop": (1440, 900), "phone": (390, 844)}
@@ -58,14 +58,14 @@ def main(root):
             for topic, view, hist in KNOBS:
                 page.select_option("#preset", "all" if hist else "7")
                 page.click(f"#topic button[value={topic}]")
-                page.click(f"#view button[value={view}]")
+                if view: page.click(f"#view button[value={view}]")
                 page.wait_for_timeout(1500)
                 state = page.evaluate("""() => {
                     const stage = document.getElementById('stage');
                     return { text: stage.innerText.trim().length, sideways: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                              failed: /Couldn't load/.test(stage.innerText) };
                 }""")
-                where = f"{size} {topic}/{view}{' since 1847' if hist else ''}"
+                where = f"{size} {topic}{'/' + view if view else ''}{' since 1847' if hist else ''}"
                 if state["text"] < 200 and (topic, view, hist) not in EMPTY_OK:
                     errors.append(f"{where}: view is nearly empty ({state['text']} characters)")
                 if state["failed"]:

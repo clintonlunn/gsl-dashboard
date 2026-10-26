@@ -17,7 +17,7 @@ header .brand, header .bar { padding: 8px 0; }
 .period label { display: grid; gap: 2px; font-size: .8125rem; color: var(--ink-2); }
 /* rain-event presets have long names; keep the select from pushing View onto its own row */
 .period select { width: 17rem; max-width: 100%; }
-.period [hidden] { display: none !important; }
+.period [hidden], .knob[hidden] { display: none !important; }
 
 .answer { padding: 24px 0; border-bottom: 1px solid var(--rule); }
 .answer .when { font: 500 .875rem var(--mono); color: var(--ink-2); margin: 0 0 6px; }
@@ -33,6 +33,23 @@ header .brand, header .bar { padding: 8px 0; }
 #stage-facts { grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); column-gap: 32px; row-gap: 8px; }
 #stage-facts .fact { border-left: 0; padding-inline: 0; }
 #stage-empty { padding: 24px 0; color: var(--ink-2); }
+/* At a glance on a laptop or larger: answer and numbers on the left, map over lake chart held in view on the right */
+@media (min-width: 1100px) and (min-height: 680px) {
+  main.glance { display: grid; grid-template-columns: minmax(340px, 31rem) 1fr; column-gap: 32px; align-items: start; }
+  main.glance #stage { display: contents; }
+  main.glance > *, main.glance #stage-empty { grid-column: 1 / -1; }
+  main.glance .answer { grid-column: 1; grid-row: 1; padding: 16px 0 12px; }
+  main.glance .answer h1 { font-size: clamp(1.4rem, 2.2vw, 2rem); }
+  main.glance .answer p { font-size: 1rem; }
+  main.glance .top { grid-column: 1; grid-row: 2; display: block; }
+  main.glance #stage-facts { grid-column: 1; grid-row: 3; display: block; border-bottom: 0; }
+  main.glance #stage-facts .fact { padding: 12px 0; border-top: 1px solid var(--grid-major); }
+  main.glance #stage-sections { grid-column: 2; grid-row: 1 / 4; position: sticky; top: 0; display: grid;
+    grid-template-rows: minmax(0, 3fr) minmax(0, 2fr); height: calc(100dvh - 24px); min-height: 560px; }
+  main.glance #stage-sections > .section { display: flex; flex-direction: column; min-height: 0; padding: 12px 0; }
+  main.glance .map { flex: 1; height: auto; min-height: 220px; }
+  main.glance #chart-lake-level { flex: 1; height: auto; min-height: 140px; }
+}
 .about { padding: 16px 0 0; }
 .about > summary { cursor: pointer; font: 600 .95rem var(--sans); padding: 12px 0; }
 .fact h2, .section h2 { font: 600 1.05rem/1.3 var(--sans); margin: 0; }

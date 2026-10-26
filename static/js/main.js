@@ -48,11 +48,13 @@ if (knobs.hist) loadHistory().then(drawHistory);
 // knobs: a change shows the matching blocks and draws them again, since charts drawn while hidden have no size
 export function setKnobs(change) {
   Object.assign(knobs, change);
+  // the glance is about the chosen dates: the long record moves it to the lake, picking it leaves the long record
+  if (knobs.topic === 'glance' && knobs.hist) { if (change.topic) knobs.hist = false; else knobs.topic = 'lake'; }
   showKnobs(); syncPreset();
   history.replaceState(null, '', knobQuery(fromIn.value, toIn.value));
   render();
   if (knobs.hist) loadHistory().then(drawHistory);
-  requestAnimationFrame(() => { stackTables(); Object.values(charts).forEach(c => c.resize()); if (knobs.view === 'map') resizeMap(); });
+  requestAnimationFrame(() => { stackTables(); Object.values(charts).forEach(c => c.resize()); if (knobs.view === 'map' || knobs.topic === 'glance') resizeMap(); });
 }
 for (const id of ['topic', 'view']) document.getElementById(id).addEventListener('click', (e) => {
   const b = e.target.closest('button');

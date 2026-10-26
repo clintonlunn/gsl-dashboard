@@ -48,6 +48,7 @@
     <div class="knob" role="group" aria-labelledby="topic-l">
       <span class="knob-l" id="topic-l">Topic</span>
       <div class="seg" id="topic">
+        <button type="button" value="glance" aria-pressed="false">At a glance</button>
         <button type="button" value="lake" aria-pressed="false">Lake</button>
         <button type="button" value="budget" aria-pressed="false">Water budget</button>
         <button type="button" value="rivers" aria-pressed="false">Rivers</button>
@@ -105,7 +106,7 @@
 
     <div id="stage">
       <section class="facts" id="stage-facts" aria-label="Summary">
-        <div data-topic="lake" data-view="summary" class="fact health">
+        <div data-topic="lake glance" data-view="summary" class="fact health">
           <h2>How far from healthy</h2>
           <p class="lead" id="health-lead">—</p>
           <div class="ruler" id="ruler" role="img"></div>
@@ -134,7 +135,7 @@
         </div>
       </section>
       <div id="stage-sections">
-        <section data-topic="all" data-view="map" class="section" aria-labelledby="map-h">
+        <section data-topic="all glance" data-view="map" class="section" aria-labelledby="map-h">
           <h2 id="map-h">Where we measure</h2>
           <div id="map" class="map"></div>
           <div class="map-toggles">
@@ -154,7 +155,7 @@
           </details>
           <ul class="sr-only" id="map-list" aria-label="Gauges on the map"></ul>
         </section>
-        <section data-topic="lake" data-view="summary" class="section" aria-labelledby="level-h">
+        <section data-topic="lake glance" data-view="summary" class="section" aria-labelledby="level-h">
           <h2 id="level-h">What the lake gauge shows</h2>
           <div class="chart" id="chart-lake-level"></div>
           <details class="howto"><summary>How to read the chart, and sources</summary>
