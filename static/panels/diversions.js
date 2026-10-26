@@ -15,7 +15,7 @@
 
   // ---- glance: one fact
   G.register({
-    id: 'diversions', tab: 'water', order: 30,
+    id: 'diversions', topic: 'rivers', view: 'summary', order: 30,
     mount(slot) {
       const root = el('div', { className: 'fact' });
       root.append(el('h2', { textContent: 'Water taken before the lake' }), el('p', { className: 'lead' }),
@@ -44,7 +44,7 @@
 
   // ---- details: biggest diversions
   G.register({
-    id: 'diversions_detail', tab: 'details', order: 30,
+    id: 'diversions_detail', topic: 'rivers', view: 'detail', order: 30,
     mount(slot) {
       const root = el('section', { className: 'section' });
       root.setAttribute('aria-labelledby', 'div-top-h');
@@ -77,7 +77,7 @@
 
   // ---- history: water-year totals
   G.register({
-    id: 'diversions', tab: 'history', order: 30,
+    id: 'diversions', topic: 'rivers', view: 'history', order: 30,
     mount(slot) {
       const root = el('section', { className: 'section' });
       root.setAttribute('aria-labelledby', 'div-hist-h');

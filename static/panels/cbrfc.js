@@ -63,7 +63,7 @@
 
   // ------------------------------------------------------------ At a glance
   G.register({
-    id: 'cbrfc', tab: 'water', order: 55,
+    id: 'cbrfc', topic: 'rivers', view: 'summary', order: 55,
     mount(slot) {
       const root = el('div', { className: 'fact', id: 'cbrfc-fact' },
         el('h2', { id: 'cbrfc-h', textContent: 'What forecasters expect' }),
@@ -140,7 +140,7 @@
 
   // ------------------------------------------------------------ Details: every forecast point, and the 10-day flows
   G.register({
-    id: 'cbrfc', tab: 'details', order: 55,
+    id: 'cbrfc', topic: 'rivers', view: 'detail', order: 55,
     mount(slot) {
       const root = el('section', { className: 'section', id: 'cbrfc-details' },
         el('h2', { id: 'cbrfc-d-h', textContent: 'River Forecast Center: seasonal and 10-day forecasts' }),
@@ -168,7 +168,7 @@
       note.textContent = (d.status === 'official' ? '' : `Seasonal forecasts for ${d.water_year} start in January; the table shows the last ones issued, for ${wy}, next to what actually ran off. `)
         + 'Each seasonal forecast is the volume of water expected to pass the point from April through July, in thousand acre-feet (1 thousand acre-ft is about 326 million gallons). '
         + '"Most likely" is the middle forecast (a 50% chance of more). "Likely range" runs from the 90% to the 10% exceedance forecast: an 8-in-10 chance the real volume lands inside it. '
-        + '"Usual" is the 1991–2020 average. Volumes are natural flow, before upstream reservoirs and diversions, except at Stewart Dam (regulated). Bold rows are the points summarized on the first tab.';
+        + '"Usual" is the 1991–2020 average. Volumes are natural flow, before upstream reservoirs and diversions, except at Stewart Dam (regulated). Bold rows are the points in the Rivers summary.';
       tbox.replaceChildren(P.length ? el('div', { className: 'tablewrap' }, el('table', { className: 'cbrfc-tbl' },
         el('caption', { textContent: `${P.length} CBRFC forecast points in the Great Salt Lake basin, forecast of ${fmtDate(P[0].issued)}${d.issues?.length > 1 ? ` (issued ${d.issues.length} times that season)` : ''}. Each name links to its CBRFC page.` }),
         el('thead', {}, el('tr', {}, ...['Forecast point', 'Most likely', '% of usual', 'Likely range', 'Usual', 'What ran off', 'Ran off, % of usual', 'CBRFC id'].map((t, i) =>
@@ -239,7 +239,7 @@
   // ------------------------------------------------------------ History: April 1 forecast vs what came
   let histPick = null;
   G.register({
-    id: 'cbrfc', tab: 'history', order: 65,
+    id: 'cbrfc', topic: 'rivers', view: 'history', order: 65,
     mount(slot) {
       const sel = el('select', { id: 'cbrfc-hist-pick' });
       const root = el('section', { className: 'section cbrfc-hist', id: 'cbrfc-hist' },

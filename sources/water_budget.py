@@ -308,9 +308,9 @@ RECENT_YEARS = 5
 
 
 def _recent(con, last):
-    """Average depletions a year over the newest few water years, for the Farms tab's "where the water goes".
+    """Average depletions a year over the newest few water years, for the Farms summary's "where the water goes".
 
-    by_basin: [basin, utah (1/0), sector, af]. Idaho and Wyoming rows are split by sector here too (the History tab
+    by_basin: [basin, utah (1/0), sector, af]. Idaho and Wyoming rows are split by sector here too (the Since 1847 record
     only sends their totals). mineral_lake_af is mineral extraction everywhere, i.e. all the lake's evaporation ponds,
     including the west-side ones the model books under the West Desert basin.
     """

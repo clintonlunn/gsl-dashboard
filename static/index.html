@@ -36,13 +36,6 @@
 <div class="wrap">
   <header>
     <p class="brand">Great Salt Lake water check</p>
-    <div class="tabs" role="tablist" aria-label="Level of detail">
-      <button type="button" role="tab" id="tab-glance" aria-controls="panel-glance" aria-selected="true">At a glance</button>
-      <button type="button" role="tab" id="tab-water" aria-controls="panel-water" aria-selected="false" tabindex="-1">Water<span class="tab-more"> in and out</span></button>
-      <button type="button" role="tab" id="tab-history" aria-controls="panel-history" aria-selected="false" tabindex="-1">History</button>
-      <button type="button" role="tab" id="tab-ag" aria-controls="panel-ag" aria-selected="false" tabindex="-1">Farms<span class="tab-more"> and water</span></button>
-      <button type="button" role="tab" id="tab-details" aria-controls="panel-details" aria-selected="false" tabindex="-1">Details<span class="tab-more"> and method</span></button>
-    </div>
     <div class="bar">
       <span id="asof"></span>
       <button id="sources-btn" type="button">Sources</button>
@@ -51,189 +44,194 @@
     </div>
   </header>
 
-  <form class="period" id="period" aria-label="Choose a time period">
-    <label for="preset">Period
-      <select id="preset">
-        <option value="7">Last 7 days</option>
-        <option value="30">Last 30 days</option>
-        <option value="365">Last year</option>
-        <option value="3652">Last 10 years</option>
-        <option value="custom">Custom dates</option>
-      </select>
-    </label>
-    <label for="from">From <input type="date" id="from" min="1847-10-18" required></label>
-    <label for="to">To <input type="date" id="to" min="1847-10-18" required></label>
-    <button type="submit">Show</button>
-  </form>
+  <div class="knobs" aria-label="What to show">
+    <div class="knob" role="group" aria-labelledby="topic-l">
+      <span class="knob-l" id="topic-l">Topic</span>
+      <div class="seg" id="topic">
+        <button type="button" value="glance" aria-pressed="false">At a glance</button>
+        <button type="button" value="lake" aria-pressed="false">Lake</button>
+        <button type="button" value="budget" aria-pressed="false">Water budget</button>
+        <button type="button" value="rivers" aria-pressed="false">Rivers</button>
+        <button type="button" value="sky" aria-pressed="false">Rain and snow</button>
+        <button type="button" value="reservoirs" aria-pressed="false">Reservoirs</button>
+        <button type="button" value="ground" aria-pressed="false">Ground and wetlands</button>
+        <button type="button" value="farms" aria-pressed="false">Farms</button>
+      </div>
+    </div>
+    <form class="period knob" id="period" aria-label="Choose a time period">
+      <label for="preset">Period
+        <select id="preset">
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="365">Last year</option>
+          <option value="3652">Last 10 years</option>
+          <option value="all">Since 1847</option>
+          <option value="custom">Custom dates</option>
+        </select>
+      </label>
+      <label for="from">From <input type="date" id="from" min="1847-10-18" required></label>
+      <label for="to">To <input type="date" id="to" min="1847-10-18" required></label>
+      <button type="submit">Show</button>
+    </form>
+    <div class="knob" role="group" aria-labelledby="view-l">
+      <span class="knob-l" id="view-l">View</span>
+      <div class="seg" id="view">
+        <button type="button" value="summary" aria-pressed="false">Summary</button>
+        <button type="button" value="map" aria-pressed="false">Map</button>
+        <button type="button" value="detail" aria-pressed="false">Detail</button>
+      </div>
+    </div>
+  </div>
 
   <main>
-  <div class="panel glance" id="panel-glance" role="tabpanel" aria-labelledby="tab-glance">
-    <section class="answer" aria-labelledby="answer-h" aria-live="polite">
+    <section data-topic="all" data-view="period" class="answer" aria-labelledby="answer-h" aria-live="polite">
       <p class="when" id="when"></p>
       <h1 id="answer-h">Loading the latest gauge readings…</h1>
       <p id="answer-p"></p>
       <details class="howto"><summary>Sources for these numbers</summary><p class="src" id="src-answer"></p></details>
     </section>
-
-    <section class="facts" id="panels-glance" aria-label="Key numbers">
+    <section class="top" aria-label="Key numbers">
       <section class="now" aria-labelledby="now-h">
         <h2 id="now-h">Right now <span class="now-time" id="now-time"></span></h2>
         <ul class="now-list" id="now-list"><li><span class="sub">Loading live readings…</span></li></ul>
         <details class="howto"><summary>About these readings</summary><p class="src" id="src-now"></p></details>
       </section>
-      <ul class="cards" aria-label="This period in four numbers">
-        <li><a class="card" href="#water" data-go="source-lead"><span class="lbl">Water in</span><span class="val" id="c-in">—</span><span class="sub" id="c-in-sub"></span><span class="more">Where it came from</span></a></li>
-        <li><a class="card" href="#water" data-go="ledger-lead"><span class="lbl">Water out</span><span class="val" id="c-out">—</span><span class="sub" id="c-out-sub"></span><span class="more">The full ledger</span></a></li>
-        <li><a class="card" href="#water" data-go="snotel-lead"><span class="lbl">Snow in the mountains</span><span class="val" id="c-snow">—</span><span class="sub" id="c-snow-sub"></span><span class="more">Snowpack by basin</span></a></li>
-        <li><a class="card" href="#water" data-go="cbrfc-lead"><span class="lbl">What's coming</span><span class="val" id="c-next">—</span><span class="sub" id="c-next-sub"></span><span class="more">River forecasts</span></a></li>
+      <ul data-topic="all" data-view="period" class="cards" aria-label="This period in four numbers">
+        <li><a class="card" href="#stage" data-go="budget"><span class="lbl">Water in</span><span class="val" id="c-in">—</span><span class="sub" id="c-in-sub"></span><span class="more">Where it came from</span></a></li>
+        <li><a class="card" href="#stage" data-go="budget"><span class="lbl">Water out</span><span class="val" id="c-out">—</span><span class="sub" id="c-out-sub"></span><span class="more">The full ledger</span></a></li>
+        <li><a class="card" href="#stage" data-go="sky"><span class="lbl">Snow in the mountains</span><span class="val" id="c-snow">—</span><span class="sub" id="c-snow-sub"></span><span class="more">Snowpack by basin</span></a></li>
+        <li><a class="card" href="#stage" data-go="rivers"><span class="lbl">What's coming</span><span class="val" id="c-next">—</span><span class="sub" id="c-next-sub"></span><span class="more">River forecasts</span></a></li>
       </ul>
-      <div class="fact health">
-        <h2>How far from healthy</h2>
-        <p class="lead" id="health-lead">—</p>
-        <div class="ruler" id="ruler" role="img"></div>
-        <details class="howto"><summary>What "healthy" means, and sources</summary>
-          <p class="note">"Healthy" is the range where the state's lake-level matrix rates brine shrimp, birds, wetlands, air quality from dust, and lake industries as being in good shape. Below it, exposed lakebed and rising salinity start to harm them.</p>
-          <p class="src" id="src-health"></p>
-        </details>
-      </div>
     </section>
 
-    <div class="wide2 visuals">
-      <section class="section" aria-labelledby="map-h">
-        <h2 id="map-h">Where we measure</h2>
-        <div id="map" class="map"></div>
-        <div class="map-toggles">
-          <label class="src" for="show-radar"><input type="checkbox" id="show-radar" checked> Live rain radar <span id="radar-time"></span></label>
-          <label class="src" for="show-wetlands"><input type="checkbox" id="show-wetlands"> UGS wetland survey sites</label>
+    <div id="stage">
+      <section class="facts" id="stage-facts" aria-label="Summary">
+        <div data-topic="lake glance" data-view="summary" class="fact health">
+          <h2>How far from healthy</h2>
+          <p class="lead" id="health-lead">—</p>
+          <div class="ruler" id="ruler" role="img"></div>
+          <details class="howto"><summary>What "healthy" means, and sources</summary>
+            <p class="note">"Healthy" is the range where the state's lake-level matrix rates brine shrimp, birds, wetlands, air quality from dust, and lake industries as being in good shape. Below it, exposed lakebed and rising salinity start to harm them.</p>
+            <p class="src" id="src-health"></p>
+          </details>
         </div>
-        <div class="radar-loop" id="radar-loop">
-          <button type="button" id="radar-play" aria-pressed="false">Play</button>
-          <select id="radar-span" aria-label="Radar loop length"><option value="3">Last 3 hours</option><option value="12">Last 12 hours</option><option value="24">Last 24 hours</option></select>
-          <input type="range" id="radar-slider" min="0" max="18" step="1" value="18" aria-label="Radar time, last 3 hours in 10-minute steps">
+        <div data-topic="budget" data-view="summary" class="fact ledger" id="ledger-fact">
+          <h2 id="ledger-h">The lake's water ledger</h2>
+          <p class="lead" id="ledger-lead">—</p>
+          <div id="ledger"></div>
+          <p class="src" id="src-ledger"></p>
         </div>
-        <details class="howto"><summary>How to read the map, and sources</summary>
-          <p class="note">Dots are USGS gauges: black ones had readings for this period, white ones had none, and the orange one measures the lake's water level. Green dots are UGS wetland survey sites: reference-quality sites are solid, others hollow. Names hide when they would overlap; zoom in to see more. Select a dot for its numbers. Use two fingers or Ctrl + scroll to zoom.</p>
-          <p class="src" id="imagery-note"></p>
-          <p class="src" id="src-map"></p>
-          <p class="src">Radar: National Weather Service NEXRAD base reflectivity, a mosaic of every US radar updated every 5 minutes (Play steps through the last 3 hours in 10-minute frames, or 12 or 24 hours in 30-minute frames), from the <a href="https://mesonet.agron.iastate.edu/ogc/">Iowa Environmental Mesonet</a>. Brighter colors mean heavier rain or snow; it shows what is falling now, not how much has fallen. Mountains block the lowest beams, so light rain in some valleys can be missed.</p>
-        </details>
-        <ul class="sr-only" id="map-list" aria-label="Gauges on the map"></ul>
+        <div data-topic="budget" data-view="summary" class="fact">
+          <h2>Where the water came from</h2>
+          <p class="lead" id="source-lead">—</p>
+          <div id="split"></div>
+          <p class="src" id="src-source"></p>
+        </div>
+        <div data-topic="rivers" data-view="summary" class="fact">
+          <h2>Rivers and creeks</h2>
+          <p class="lead" id="flow-lead"></p>
+          <ul class="flowlist" id="flowlist"></ul>
+          <p class="src" id="src-flow"></p>
+        </div>
       </section>
-
-      <section class="section" aria-labelledby="level-h">
-        <h2 id="level-h">What the lake gauge shows</h2>
-        <div class="chart" id="chart-lake-level"></div>
-        <details class="howto"><summary>How to read the chart, and sources</summary>
-          <p class="note">Water level at Saltair, on the south shore. The shaded part is the period you picked; the dashed line is the level just before it. Sharp jumps are wind sloshing water toward the shore, not new water, so compare calm stretches.</p>
-          <p class="src" id="src-level"></p>
-        </details>
-      </section>
+      <div id="stage-sections">
+        <section data-topic="all glance" data-view="map" class="section" aria-labelledby="map-h">
+          <h2 id="map-h">Where we measure</h2>
+          <div id="map" class="map"></div>
+          <div class="map-toggles">
+            <label class="src" for="show-radar"><input type="checkbox" id="show-radar" checked> Live rain radar <span id="radar-time"></span></label>
+            <label class="src" for="show-wetlands"><input type="checkbox" id="show-wetlands"> UGS wetland survey sites</label>
+          </div>
+          <div class="radar-loop" id="radar-loop">
+            <button type="button" id="radar-play" aria-pressed="false">Play</button>
+            <select id="radar-span" aria-label="Radar loop length"><option value="3">Last 3 hours</option><option value="12">Last 12 hours</option><option value="24">Last 24 hours</option></select>
+            <input type="range" id="radar-slider" min="0" max="18" step="1" value="18" aria-label="Radar time, last 3 hours in 10-minute steps">
+          </div>
+          <details class="howto"><summary>How to read the map, and sources</summary>
+            <p class="note">Dots are USGS gauges: black ones had readings for this period, white ones had none, and the orange one measures the lake's water level. Green dots are UGS wetland survey sites: reference-quality sites are solid, others hollow. Names hide when they would overlap; zoom in to see more. Select a dot for its numbers. Use two fingers or Ctrl + scroll to zoom.</p>
+            <p class="src" id="imagery-note"></p>
+            <p class="src" id="src-map"></p>
+            <p class="src">Radar: National Weather Service NEXRAD base reflectivity, a mosaic of every US radar updated every 5 minutes (Play steps through the last 3 hours in 10-minute frames, or 12 or 24 hours in 30-minute frames), from the <a href="https://mesonet.agron.iastate.edu/ogc/">Iowa Environmental Mesonet</a>. Brighter colors mean heavier rain or snow; it shows what is falling now, not how much has fallen. Mountains block the lowest beams, so light rain in some valleys can be missed.</p>
+          </details>
+          <ul class="sr-only" id="map-list" aria-label="Gauges on the map"></ul>
+        </section>
+        <section data-topic="lake glance" data-view="summary" class="section" aria-labelledby="level-h">
+          <h2 id="level-h">What the lake gauge shows</h2>
+          <div class="chart" id="chart-lake-level"></div>
+          <details class="howto"><summary>How to read the chart, and sources</summary>
+            <p class="note">Water level at Saltair, on the south shore. The shaded part is the period you picked; the dashed line is the level just before it. Sharp jumps are wind sloshing water toward the shore, not new water, so compare calm stretches.</p>
+            <p class="src" id="src-level"></p>
+          </details>
+        </section>
+        <div data-topic="lake" data-view="detail" class="tiles-wrap">
+          <div class="tiles">
+            <div class="tile"><div class="lbl">Lake gauge change</div><div class="val"><span id="t-change">—</span><span class="unit">in</span></div><div class="sub">Last day vs the day before, now <span id="t-level">—</span> ft</div></div>
+            <div class="tile"><div class="lbl">Rain on the lake</div><div class="val"><span id="t-rain">—</span><span class="unit">in</span></div><div class="sub">Middle value of <span id="t-stations">—</span> lowland stations</div></div>
+            <div class="tile"><div class="lbl">River water in</div><div class="val"><span id="t-river">—</span><span class="unit">acre-ft</span></div><div class="sub" id="t-excess-sub"><span id="t-excess">—</span> acre-ft above normal</div></div>
+            <div class="tile"><div class="lbl">Lake surface</div><div class="val"><span id="t-area">—</span><span class="unit">acres</span></div><div class="sub">At <span id="t-area-lvl">—</span> ft, from USGS tables</div></div>
+          </div>
+          <p class="src" id="src-tiles"></p>
+        </div>
+        <div data-topic="rivers" data-view="summary" class="grid2">
+          <section class="section" aria-labelledby="flow-h">
+            <h2 id="flow-h">Flow reaching the lake</h2>
+            <p class="note" id="flow-note">Flow in cubic feet per second at the last gauge on each river. Dashed lines are normal flow; the shaded area is your period.</p>
+            <div class="chart" id="chart-rivers"></div>
+            <p class="src" id="src-rivers"></p>
+          </section>
+          <section class="section" aria-labelledby="jump-h">
+            <h2 id="jump-h">Biggest jump upstream</h2>
+            <p class="note" id="jump-note">The upstream gauge running furthest above its normal flow.</p>
+            <div class="chart" id="chart-jump"></div>
+            <p class="src" id="src-jump"></p>
+          </section>
+        </div>
+        <section data-topic="sky" data-view="summary" class="section" aria-labelledby="rain-h">
+          <h2 id="rain-h">Rain by station</h2>
+          <p class="note">Rain reported in this period by National Weather Service, airport and volunteer CoCoRaHS gauges. The lake estimate uses only lowland stations near lake level that reported most days. Bench and mountain stations get extra rain from the slopes, so they're shown but not counted. Volunteer gauges report each morning for the day before.</p>
+          <ul class="legend" aria-hidden="true">
+            <li><i class="on"></i>Counted toward the lake estimate</li>
+            <li><i class="offk"></i>Not counted (higher ground or missing reports)</li>
+            <li><i class="med"></i>Middle value of counted stations</li>
+          </ul>
+          <div class="chart" id="chart-rain"></div>
+          <p class="src" id="src-rain"></p>
+        </section>
+        <section data-topic="rivers" data-view="detail" class="section" aria-labelledby="cum-h">
+          <h2 id="cum-h">River water above normal, running total</h2>
+          <p class="note">Acre-feet above normal since the period began, all river mouths combined. A falling line means rivers ran below normal. Only shown for periods up to two months, where "normal" means something.</p>
+          <div class="chart" id="chart-cum"></div>
+          <p class="src" id="src-cum"></p>
+        </section>
+        <section data-topic="rivers" data-view="detail" class="section" aria-labelledby="tbl-h">
+          <h2 id="tbl-h">Every gauge</h2>
+          <div class="tablewrap"><table id="site-table">
+            <caption id="tbl-cap"></caption>
+            <thead><tr><th scope="col">USGS site</th><th scope="col">Gauge</th><th scope="col">Role</th><th scope="col">Normal (cfs)</th><th scope="col">Peak (cfs)</th><th scope="col">Latest (cfs)</th><th scope="col">Water (acre-ft)</th><th scope="col">Above normal (acre-ft)</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+          <p class="src" id="src-table"></p>
+        </section>
+        <section data-topic="lake" data-view="history" class="section" aria-labelledby="hist-h">
+          <h2 id="hist-h">The lake since 1847</h2>
+          <p class="note">Weekly average level at Saltair. The green band is the healthy range and the dashed line is the 2022 record low. Drag the slider under the chart to zoom, then show that stretch on the whole page.</p>
+          <div class="hist-bar"><span id="hist-range"></span><button type="button" id="hist-apply">Show this stretch</button></div>
+          <div class="chart tall" id="chart-history"></div>
+          <p class="src" id="src-history"></p>
+        </section>
+        <section data-topic="rivers" data-view="history" class="section" aria-labelledby="annual-h">
+          <h2 id="annual-h">River water reaching the lake each year</h2>
+          <p class="note">Total flow at the last gauge on each river, by water year (October through September, named for the year it ends). Years with big gaps in the record are left out; the Bear River record starts in 1950.</p>
+          <div class="chart tall" id="chart-annual"></div>
+          <p class="src" id="src-annual"></p>
+        </section>
+        <p class="note" id="ag-empty" data-topic="farms" data-view="summary">Loading farm water figures…</p>
+      </div>
+      <p class="note" id="stage-empty" hidden></p>
     </div>
 
-  </div>
-
-  <div class="panel" id="panel-water" role="tabpanel" aria-labelledby="tab-water" hidden>
-    <section class="facts" id="panels-water" aria-label="Water in and out">
-      <div class="fact ledger" id="ledger-fact">
-        <h2 id="ledger-h">The lake's water ledger</h2>
-        <p class="lead" id="ledger-lead">—</p>
-        <div id="ledger"></div>
-        <p class="src" id="src-ledger"></p>
-      </div>
-      <div class="fact">
-        <h2>Where the water came from</h2>
-        <p class="lead" id="source-lead">—</p>
-        <div id="split"></div>
-        <p class="src" id="src-source"></p>
-      </div>
-      <div class="fact">
-        <h2>Rivers and creeks</h2>
-        <p class="lead" id="flow-lead"></p>
-        <ul class="flowlist" id="flowlist"></ul>
-        <p class="src" id="src-flow"></p>
-      </div>
-    </section>
-  </div>
-
-  <div class="panel" id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden>
-    <section class="section" aria-labelledby="hist-h">
-      <h2 id="hist-h">The lake since 1847</h2>
-      <p class="note">Weekly average level at Saltair. The green band is the healthy range and the dashed line is the 2022 record low. Drag the slider under the chart to zoom, then show that stretch on the whole page.</p>
-      <div class="hist-bar"><span id="hist-range"></span><button type="button" id="hist-apply">Show this stretch</button></div>
-      <div class="chart tall" id="chart-history"></div>
-      <p class="src" id="src-history"></p>
-    </section>
-
-    <section class="section" aria-labelledby="annual-h">
-      <h2 id="annual-h">River water reaching the lake each year</h2>
-      <p class="note">Total flow at the last gauge on each river, by water year (October through September, named for the year it ends). Years with big gaps in the record are left out; the Bear River record starts in 1950.</p>
-      <div class="chart tall" id="chart-annual"></div>
-      <p class="src" id="src-annual"></p>
-    </section>
-    <div id="panels-history"></div>
-
-  </div>
-
-  <div class="panel" id="panel-ag" role="tabpanel" aria-labelledby="tab-ag" hidden>
-    <div id="panels-ag"><p class="note" id="ag-empty">Loading farm water figures…</p></div>
-  </div>
-
-  <div class="panel" id="panel-details" role="tabpanel" aria-labelledby="tab-details" hidden>
-
-      <div class="tiles">
-        <div class="tile"><div class="lbl">Lake gauge change</div><div class="val"><span id="t-change">—</span><span class="unit">in</span></div><div class="sub">Last day vs the day before, now <span id="t-level">—</span> ft</div></div>
-        <div class="tile"><div class="lbl">Rain on the lake</div><div class="val"><span id="t-rain">—</span><span class="unit">in</span></div><div class="sub">Middle value of <span id="t-stations">—</span> lowland stations</div></div>
-        <div class="tile"><div class="lbl">River water in</div><div class="val"><span id="t-river">—</span><span class="unit">acre-ft</span></div><div class="sub" id="t-excess-sub"><span id="t-excess">—</span> acre-ft above normal</div></div>
-        <div class="tile"><div class="lbl">Lake surface</div><div class="val"><span id="t-area">—</span><span class="unit">acres</span></div><div class="sub">At <span id="t-area-lvl">—</span> ft, from USGS tables</div></div>
-      </div>
-      <p class="src" id="src-tiles"></p>
-
-      <div class="grid2">
-        <section class="section" aria-labelledby="flow-h">
-          <h2 id="flow-h">Flow reaching the lake</h2>
-          <p class="note" id="flow-note">Flow in cubic feet per second at the last gauge on each river. Dashed lines are normal flow; the shaded area is your period.</p>
-          <div class="chart" id="chart-rivers"></div>
-          <p class="src" id="src-rivers"></p>
-        </section>
-        <section class="section" aria-labelledby="jump-h">
-          <h2 id="jump-h">Biggest jump upstream</h2>
-          <p class="note" id="jump-note">The upstream gauge running furthest above its normal flow.</p>
-          <div class="chart" id="chart-jump"></div>
-          <p class="src" id="src-jump"></p>
-        </section>
-      </div>
-
-      <section class="section" aria-labelledby="rain-h">
-        <h2 id="rain-h">Rain by station</h2>
-        <p class="note">Rain reported in this period by National Weather Service, airport and volunteer CoCoRaHS gauges. The lake estimate uses only lowland stations near lake level that reported most days. Bench and mountain stations get extra rain from the slopes, so they're shown but not counted. Volunteer gauges report each morning for the day before.</p>
-        <ul class="legend" aria-hidden="true">
-          <li><i class="on"></i>Counted toward the lake estimate</li>
-          <li><i class="offk"></i>Not counted (higher ground or missing reports)</li>
-          <li><i class="med"></i>Middle value of counted stations</li>
-        </ul>
-        <div class="chart" id="chart-rain"></div>
-        <p class="src" id="src-rain"></p>
-      </section>
-
-      <section class="section" aria-labelledby="cum-h">
-        <h2 id="cum-h">River water above normal, running total</h2>
-        <p class="note">Acre-feet above normal since the period began, all river mouths combined. A falling line means rivers ran below normal. Only shown for periods up to two months, where "normal" means something.</p>
-        <div class="chart" id="chart-cum"></div>
-        <p class="src" id="src-cum"></p>
-      </section>
-
-      <section class="section" aria-labelledby="tbl-h">
-        <h2 id="tbl-h">Every gauge</h2>
-        <div class="tablewrap"><table id="site-table">
-          <caption id="tbl-cap"></caption>
-          <thead><tr><th scope="col">USGS site</th><th scope="col">Gauge</th><th scope="col">Role</th><th scope="col">Normal (cfs)</th><th scope="col">Peak (cfs)</th><th scope="col">Latest (cfs)</th><th scope="col">Water (acre-ft)</th><th scope="col">Above normal (acre-ft)</th></tr></thead>
-          <tbody></tbody>
-        </table></div>
-        <p class="src" id="src-table"></p>
-      </section>
-
-      <div id="panels-details"></div>
-
+    <details class="about" id="about">
+      <summary>Method and data sources</summary>
       <section class="method" aria-label="Method">
         <dl class="glossary">
           <dt>cfs</dt><dd>Cubic feet per second, how fast water flows past a gauge. 1 cfs is about 7.5 gallons every second.</dd>
@@ -243,21 +241,20 @@
         <p><b>How it's worked out.</b> USGS gauge readings and NOAA daily rain totals are pulled into a DuckDB database and added up in SQL. Gauges are found automatically: every active USGS stream gauge in the lower Bear, Weber and Jordan river basins. River water is measured at the last gauge on each river: Bear River near Corinne, Weber River near Plain City, and the Jordan at Surplus Canal and Cudahy Lane. Every other gauge drains through those, so it isn't added again. Periods up to two months use 15-minute readings averaged by hour; longer ones use USGS daily averages. Rain on the lake is the middle value of lowland stations (below 4,500 ft) spread over the lake's surface at its level then; it's skipped for periods over 20 years. Lake change compares the average of the day before the period with its last day, which smooths out some wind.</p>
         <p><b>Left out.</b> Evaporation, groundwater, smaller creeks and drains that enter the lake directly, and canal diversions above the gauges. Recent readings are provisional and may be revised.</p>
       </section>
-    <footer class="sources" aria-labelledby="sources-h">
-      <h2 id="sources-h">Data sources</h2>
-      <ul>
-        <li>Stream flow and lake level: <a href="https://waterdata.usgs.gov/">USGS National Water Information System</a>, instantaneous and daily values. Recent values are provisional.</li>
-        <li>Rain: <a href="https://www.rcc-acis.org/">NOAA Applied Climate Information System</a>, daily reports from NWS co-op, airport and <a href="https://www.cocorahs.org/">CoCoRaHS</a> stations.</li>
-        <li>Lake area and volume: <a href="https://doi.org/10.5066/P9DGG75W">USGS Great Salt Lake elevation-area-volume tables (2023)</a>.</li>
-        <li>Healthy range 4,198–4,205 ft: the levels where Utah's <a href="https://ffsl.utah.gov/wp-content/uploads/Elevation_Matrix_3_1_13Cropped.pdf">Great Salt Lake elevation matrix</a> (Division of Forestry, Fire and State Lands, 2013) rates most of the lake's resources as healthy. The <a href="https://wilkescenter.utah.edu/great-salt-lake/strike-team/">Great Salt Lake Strike Team</a> recommended it as the target, and the <a href="https://greatsaltlake.utah.gov/wp-content/uploads/Great-Salt-Lake-Strategic-Plan.pdf">2024 Great Salt Lake Strategic Plan</a> aims for its low end. Record low: <a href="https://www.usgs.gov/centers/ut-water/science/great-salt-lake-elevations">USGS</a>.</li>
-        <li>Satellite picture: <a href="https://planetarycomputer.microsoft.com/dataset/sentinel-2-l2a">Copernicus Sentinel-2 Level-2A via Microsoft Planetary Computer</a> (zoomed in) and <a href="https://s2maps.eu">Sentinel-2 cloudless 2024 by EOX</a>, CC BY-NC-SA 4.0 (zoomed out). Map text: <a href="https://demotiles.maplibre.org/">MapLibre demo fonts</a>; place names: <a href="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer">Esri World Boundaries and Places</a> (Esri, HERE, Garmin, OpenStreetMap contributors).</li>
-        <li>Rain radar: National Weather Service <a href="https://www.ncei.noaa.gov/products/radar/next-generation-weather-radar">NEXRAD</a> base reflectivity mosaic (N0Q), live and past frames, served as map tiles by the <a href="https://mesonet.agron.iastate.edu/ogc/">Iowa Environmental Mesonet</a> at Iowa State University.</li>
-        <li>Right now: latest 15-minute readings from the <a href="https://waterservices.usgs.gov/docs/instantaneous-values/">USGS instantaneous values service</a> and the Salt Lake City airport (KSLC) observation from the <a href="https://www.weather.gov/documentation/services-web-api">National Weather Service API</a>, fetched by your browser.</li>
-        <li>Unit conversions: 1 acre-ft = 325,851 gallons; an Olympic pool holds 2,500 m³ (about 660,000 gallons).</li>
-      </ul>
-    </footer>
-  </div>
-
+      <footer class="sources" aria-labelledby="sources-h">
+        <h2 id="sources-h">Data sources</h2>
+        <ul>
+          <li>Stream flow and lake level: <a href="https://waterdata.usgs.gov/">USGS National Water Information System</a>, instantaneous and daily values. Recent values are provisional.</li>
+          <li>Rain: <a href="https://www.rcc-acis.org/">NOAA Applied Climate Information System</a>, daily reports from NWS co-op, airport and <a href="https://www.cocorahs.org/">CoCoRaHS</a> stations.</li>
+          <li>Lake area and volume: <a href="https://doi.org/10.5066/P9DGG75W">USGS Great Salt Lake elevation-area-volume tables (2023)</a>.</li>
+          <li>Healthy range 4,198–4,205 ft: the levels where Utah's <a href="https://ffsl.utah.gov/wp-content/uploads/Elevation_Matrix_3_1_13Cropped.pdf">Great Salt Lake elevation matrix</a> (Division of Forestry, Fire and State Lands, 2013) rates most of the lake's resources as healthy. The <a href="https://wilkescenter.utah.edu/great-salt-lake/strike-team/">Great Salt Lake Strike Team</a> recommended it as the target, and the <a href="https://greatsaltlake.utah.gov/wp-content/uploads/Great-Salt-Lake-Strategic-Plan.pdf">2024 Great Salt Lake Strategic Plan</a> aims for its low end. Record low: <a href="https://www.usgs.gov/centers/ut-water/science/great-salt-lake-elevations">USGS</a>.</li>
+          <li>Satellite picture: <a href="https://planetarycomputer.microsoft.com/dataset/sentinel-2-l2a">Copernicus Sentinel-2 Level-2A via Microsoft Planetary Computer</a> (zoomed in) and <a href="https://s2maps.eu">Sentinel-2 cloudless 2024 by EOX</a>, CC BY-NC-SA 4.0 (zoomed out). Map text: <a href="https://demotiles.maplibre.org/">MapLibre demo fonts</a>; place names: <a href="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer">Esri World Boundaries and Places</a> (Esri, HERE, Garmin, OpenStreetMap contributors).</li>
+          <li>Rain radar: National Weather Service <a href="https://www.ncei.noaa.gov/products/radar/next-generation-weather-radar">NEXRAD</a> base reflectivity mosaic (N0Q), live and past frames, served as map tiles by the <a href="https://mesonet.agron.iastate.edu/ogc/">Iowa Environmental Mesonet</a> at Iowa State University.</li>
+          <li>Right now: latest 15-minute readings from the <a href="https://waterservices.usgs.gov/docs/instantaneous-values/">USGS instantaneous values service</a> and the Salt Lake City airport (KSLC) observation from the <a href="https://www.weather.gov/documentation/services-web-api">National Weather Service API</a>, fetched by your browser.</li>
+          <li>Unit conversions: 1 acre-ft = 325,851 gallons; an Olympic pool holds 2,500 m³ (about 660,000 gallons).</li>
+        </ul>
+      </footer>
+    </details>
   </main>
 </div>
 

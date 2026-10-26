@@ -33,7 +33,7 @@
   const OPEN = new Set();
 
   G.register({
-    id: 'rights_holders', tab: 'ag', order: 31,
+    id: 'rights_holders', topic: 'farms', view: 'detail', order: 31,
     mount(slot) {
       const basin = el('select', { id: 'rh-basin' }, el('option', { value: '', textContent: 'All four basins' }),
         ...BASINS.map(k => el('option', { value: k, textContent: k })));

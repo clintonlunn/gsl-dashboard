@@ -39,7 +39,7 @@
   const td = (t, n) => el('td', { textContent: t ?? '—', className: n ? 'n' : '' });
 
   G.register({
-    id: 'ugs_wetlands', tab: 'details', order: 45,
+    id: 'ugs_wetlands', topic: 'ground', view: 'detail', order: 45,
     mount(slot) {
       const root = el('section', { className: 'section ugs-wet', id: 'ugs-wet' },
         el('h2', { id: 'ugs-wet-h', textContent: 'Wetlands on the lake\'s edge' }),

@@ -1,5 +1,6 @@
 import { barChart, chart, charts, emptyChart, lineChart } from './charts.js';
-import { showTab } from './main.js';
+import { knobs } from './knobs.js';
+import { setKnobs } from './main.js';
 import { drawMap } from './map.js';
 import { PANELS, renderPanels } from './panels.js';
 import { toIn, today } from './period.js';
@@ -62,13 +63,14 @@ function renderCards(D, { gallons, inIn, rain, size }) {
     set(id, c?.val ?? '—', c?.sub ?? 'Not available right now.');
   }
 }
+// each card picks its topic and moves to the first block that shows
 document.querySelectorAll('.card[data-go]').forEach(a => a.addEventListener('click', (e) => {
   e.preventDefault();
-  showTab(document.getElementById('tab-water'));
-  const fact = document.getElementById(a.dataset.go)?.closest('.fact'), h = fact?.querySelector('h2');
-  if (!fact) return;
-  fact.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-  h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true });
+  setKnobs({ topic: a.dataset.go, view: knobs.view === 'map' ? 'summary' : knobs.view });
+  const first = [...document.querySelectorAll('#stage [data-view]')].find(n => !n.hidden), h = first?.querySelector('h2');
+  if (!first) return;
+  first.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
 }));
 
 // ---------------------------------------------------------------- page
@@ -211,10 +213,7 @@ export function render() {
   cite('src-cum', 'USGS gauges ', ...gaugeLinks(termIds), '.');
   cite('src-rain', ACIS(), ', MultiStnData daily precipitation.');
   if (upstream[0]) cite('src-jump', 'USGS gauge ', link(upstream[0].site_id, USGS(upstream[0].site_id)), '.');
-  renderPanels('glance'); renderPanels('water');
-  if (!document.getElementById('panel-ag').hidden) renderPanels('ag');
-  if (document.getElementById('panel-details').hidden) return;
-  renderPanels('details');
+  renderPanels();
 
   const flow = id => { const rs = D.flow_series.filter(r => r.site_id === id); return { baseline: daily ? null : rs[0]?.baseline_cfs, points: rs.map(r => ({ t: parseHour(r.hour), v: r.cfs })) }; };
   const termColor = { '10126000': css('--bear'), '10141000': css('--weber'), '10170500': css('--jordan'), '10172600': css('--ink') };

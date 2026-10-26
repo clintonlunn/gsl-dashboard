@@ -40,7 +40,7 @@ jobs:
         with:
           path: gsl.duckdb
           key: gsl-db-${{ github.run_id }}
-      # open every tab of the exported copy before publishing it; a broken page stops here, last hour's stays up
+      # turn every knob of the exported copy before publishing it; a broken page stops here, last hour's stays up
       - run: pip install playwright==1.49.1 && python -m playwright install --with-deps chromium
       - run: python tests/smoke.py _site
         env:

@@ -19,7 +19,7 @@
   ];
 
   G.register({
-    id: 'evaporation', tab: 'details', order: 18,
+    id: 'evaporation', topic: 'budget', view: 'detail', order: 18,
     mount(slot) {
       const root = el('section', { className: 'section', id: 'evap' },
         el('h2', { id: 'evap-h', textContent: 'Water leaving by evaporation' }),

@@ -1,5 +1,5 @@
 // Utah Division of Water Resources' Utah Water Budget model: where the water of the lake's river basins is used up
-// (History tab), and which inflows to the lake our gauges miss (Details tab).
+// (Since 1847), and which inflows to the lake our gauges miss (Detail view).
 // Data from sources/water_budget.py (HIST.sources.water_budget, DATA.sources.water_budget).
 (() => {
   const G = window.GSL;
@@ -34,7 +34,7 @@
   // ------------------------------------------------------------ History: where the basin's water goes
   let H = null;
   G.register({
-    id: 'water_budget', tab: 'history', order: 50,
+    id: 'water_budget', topic: 'budget', view: 'history', order: 50,
     mount(slot) {
       const sel = el('select', { id: 'wb-basin' },
         el('option', { value: '', textContent: 'All four basins' }),
@@ -138,7 +138,7 @@
 
   // ------------------------------------------------------------ Details: inflows our gauges don't see
   G.register({
-    id: 'water_budget_gaps', tab: 'details', order: 20,
+    id: 'water_budget_gaps', topic: 'budget', view: 'detail', order: 20,
     mount(slot) {
       const root = el('section', { className: 'section wb-gaps', id: 'wb-gaps' },
         el('h2', { id: 'wb-gaps-h', textContent: "Inflows our gauges don't see" }),

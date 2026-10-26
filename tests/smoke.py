@@ -1,6 +1,7 @@
-"""Smoke test for an exported copy of the page (server.py --export DIR): serve it, open every tab at desktop and phone
-width, and fail on script errors, failed same-site requests, empty tabs or sideways scrolling. Also runs axe-core on
-every tab and prints what it finds; serious and critical findings fail the run when AXE_STRICT=1.
+"""Smoke test for an exported copy of the page (server.py --export DIR): serve it, turn the knobs to every topic and
+view (and Since 1847) at desktop and phone width, and fail on script errors, failed same-site requests, empty views or
+sideways scrolling. Also runs axe-core on every view and prints what it finds; serious and critical findings fail the
+run when AXE_STRICT=1.
 
     python tests/smoke.py _site
 
@@ -17,7 +18,11 @@ import urllib.request
 from playwright.sync_api import TimeoutError as PlaywrightTimeout, sync_playwright
 
 AXE = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.2/axe.min.js"
-TABS = ("glance", "water", "history", "ag", "details")
+TOPICS = ("glance", "lake", "budget", "rivers", "sky", "reservoirs", "ground", "farms")
+# (topic, view, since 1847): the glance (which has no view), each topic's summary and detail, the map once, and each topic's long record
+KNOBS = [("glance", None, False)] + [(t, v, False) for t in TOPICS[1:] for v in ("summary", "detail")] + [("lake", "map", False)] + [(t, "summary", True) for t in TOPICS[1:]]
+# farm figures cover recent years only, so the long record has nothing for them by design
+EMPTY_OK = {("farms", "summary", True)}
 SIZES = {"desktop": (1440, 900), "phone": (390, 844)}
 
 
@@ -50,29 +55,31 @@ def main(root):
                 problems += [f"{size}: page never finished loading", *(f"{size}: {e}" for e in errors)]
                 page.close()
                 continue
-            for tab in TABS:
-                page.click(f"#tab-{tab}")
-                page.wait_for_timeout(2500)
-                state = page.evaluate("""(tab) => {
-                    const panel = document.getElementById(`panel-${tab}`);
-                    return { text: panel.innerText.trim().length, sideways: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-                             failed: /Couldn't load/.test(panel.innerText) };
-                }""", tab)
-                where = f"{size} {tab}"
-                if state["text"] < 200:
-                    errors.append(f"{where}: tab is nearly empty ({state['text']} characters)")
+            for topic, view, hist in KNOBS:
+                page.select_option("#preset", "all" if hist else "7")
+                page.click(f"#topic button[value={topic}]")
+                if view: page.click(f"#view button[value={view}]")
+                page.wait_for_timeout(1500)
+                state = page.evaluate("""() => {
+                    const stage = document.getElementById('stage');
+                    return { text: stage.innerText.trim().length, sideways: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                             failed: /Couldn't load/.test(stage.innerText) };
+                }""")
+                where = f"{size} {topic}{'/' + view if view else ''}{' since 1847' if hist else ''}"
+                if state["text"] < 200 and (topic, view, hist) not in EMPTY_OK:
+                    errors.append(f"{where}: view is nearly empty ({state['text']} characters)")
                 if state["failed"]:
                     errors.append(f"{where}: shows a load error")
                 if state["sideways"] > 1:
                     errors.append(f"{where}: page scrolls sideways by {state['sideways']}px")
                 if size == "desktop":
                     page.add_script_tag(content=axe)
-                    found = page.evaluate("""async (tab) => {
-                        const r = await axe.run(`#panel-${tab}`, { resultTypes: ['violations'] });
+                    found = page.evaluate("""async () => {
+                        const r = await axe.run('main', { resultTypes: ['violations'] });
                         return r.violations.map(v => ({ id: v.id, impact: v.impact, help: v.help, n: v.nodes.length, first: v.nodes[0]?.target.join(' ') }));
-                    }""", tab)
+                    }""")
                     for v in found:
-                        line = f"axe {tab}: [{v['impact']}] {v['id']} ×{v['n']}: {v['help']} (e.g. {v['first']})"
+                        line = f"axe {where}: [{v['impact']}] {v['id']} ×{v['n']}: {v['help']} (e.g. {v['first']})"
                         print(line)
                         if v["impact"] in ("serious", "critical"):
                             axe_bad.append(line)
@@ -85,7 +92,7 @@ def main(root):
     strict = os.environ.get("AXE_STRICT") == "1"
     if problems or (strict and axe_bad):
         sys.exit(1)
-    print(f"ok: {len(TABS)} tabs at {len(SIZES)} sizes; {len(axe_bad)} serious or critical accessibility findings")
+    print(f"ok: {len(KNOBS)} knob settings at {len(SIZES)} sizes; {len(axe_bad)} serious or critical accessibility findings")
 
 
 if __name__ == "__main__":

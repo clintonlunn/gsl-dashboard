@@ -1,34 +1,39 @@
 import { base, chart, charts, emptyChart, lineChart } from './charts.js';
 import { refreshCards, render } from './home.js';
+import { showKnobs } from './knobs.js';
 import { btn } from './main.js';
 import { STATIC, api, state } from './state.js';
 import { GAL_PER_AF, addDays, b, cite, css, el, fmt1, fmtDay, fmtInt, isoDay, link, parseDay, parseHour, pretty } from './util.js';
 
 // ---------------------------------------------------------------- plug-in panels (static/panels/*.js)
-// A panel file calls GSL.register({ id, tab: 'glance' | 'water' | 'history' | 'details', order, mount(slot) -> root,
-//   render(data, D, root), renderHistory(data, HIST, root), card(data, D) -> { val, sub } }). `data` is DATA.sources[id] (or HIST.sources[id]).
+// A panel file calls GSL.register({ id, topic: one of knobs.js TOPICS, view: 'summary' | 'detail' | 'history', order,
+//   mount(slot) -> root, render(data, D, root), renderHistory(data, HIST, root), card(data, D) -> { val, sub } }).
+// `data` is DATA.sources[id] (or HIST.sources[id]). 'history' panels show when the period is Since 1847.
 export const PANELS = [];
 // panels built on Utah Geological Survey data (ids starting "ugs") get a visible badge on their heading
 const panelRoot = (p) => {
   if (p.__root) return p.__root;
-  p.__root = p.mount(document.getElementById(`panels-${p.tab}`));
+  p.__root = p.mount(document.getElementById('stage-sections'));
+  if (!p.__root) return p.__root;
+  // short .fact summaries sit in the grid of facts; sections stack below
+  if (p.__root.classList.contains('fact')) document.getElementById('stage-facts').append(p.__root);
+  Object.assign(p.__root.dataset, { topic: p.topic, view: p.view });
+  showKnobs();
   const h2 = p.id.startsWith('ugs') && p.__root?.querySelector('h2');
   if (h2 && !h2.querySelector('.ugs-badge')) h2.prepend(el('span', { className: 'ugs-badge', textContent: 'UGS data' }), ' ');
   return p.__root;
 };
-export function renderPanels(which) {
-  for (const p of PANELS) {
-    if (p.tab !== which && !(which === 'history' && p.renderHistory)) continue;
-    try {
-      if (which === 'history' && p.renderHistory && state.HIST) p.renderHistory(state.HIST.sources?.[p.id], state.HIST, panelRoot(p));
-      else if (which !== 'history' && p.render && state.DATA) p.render(state.DATA.sources?.[p.id], state.DATA, panelRoot(p));
-    } catch (e) { console.error(`panel ${p.id}`, e); }
-  }
+function renderPanel(p, history) {
+  try {
+    if (history && p.renderHistory && state.HIST) p.renderHistory(state.HIST.sources?.[p.id], state.HIST, panelRoot(p));
+    else if (!history && p.render && state.DATA) p.render(state.DATA.sources?.[p.id], state.DATA, panelRoot(p));
+  } catch (e) { console.error(`panel ${p.id}`, e); }
 }
-// long tables outside the glance view show their first rows and a button for the rest; rendering rebuilds tables, so watch for new ones
+export function renderPanels(history = false) { for (const p of PANELS) renderPanel(p, history); }
+// long tables show their first rows and a button for the rest; rendering rebuilds tables, so watch for new ones
 const ROWS_SHOWN = 10, ROWS_MIN = 15, expanded = new Set();
 function shortenTables() {
-  for (const table of document.querySelectorAll('.panel:not(.glance) table')) {
+  for (const table of document.querySelectorAll('#stage table')) {
     if (table.closest('.sr-only')) continue; // screen-reader copies of charts stay whole
     // some tables group rows into several tbodies; count them together
     // .detail-row rows open under a row on request and keep their own hidden state
@@ -97,12 +102,11 @@ new MutationObserver(() => { if (!shortenQueued) { shortenQueued = true; request
   .observe(document.querySelector('main'), { childList: true, subtree: true });
 const DETAIL = {};
 window.GSL = {
-  register(p) { PANELS.push(p); PANELS.sort((a, c) => (a.order ?? 50) - (c.order ?? 50)); if (state.DATA) { renderPanels('glance'); renderPanels('water'); renderPanels('details'); if (p.card) refreshCards(); } if (state.HIST) renderPanels('history'); },
+  register(p) { PANELS.push(p); PANELS.sort((a, c) => (a.order ?? 50) - (c.order ?? 50)); if (state.DATA) { renderPanel(p); if (p.card) refreshCards(); } if (state.HIST) renderPanel(p, true); },
   css, fmtInt, fmt1, pretty, parseDay, parseHour, isoDay, addDays, fmtDay, el, b, link, cite, chart, emptyChart, base, lineChart,
   GAL_PER_AF, get ugs() { return state.DATA?.config?.ugs || {}; },
   // a source's on-demand extras (sources/<name>.py detail()), fetched once
   detail: (name) => (DETAIL[name] ||= fetch(STATIC ? `data/detail/${name}.json?v=${encodeURIComponent(STATIC.built_at)}` : `/api/detail/${name}`)
     .then(r => r.ok ? r.json() : Promise.reject(new Error(`detail ${r.status}`))).catch(e => { delete DETAIL[name]; throw e; })),
-  isShown: (tab) => !document.getElementById(`panel-${tab}`).hidden,
 };
 api.panels().then(r => r.json()).then(files => files.forEach(f => document.body.append(el('script', { src: `panels/${f}${STATIC ? `?v=${encodeURIComponent(STATIC.built_at)}` : ''}` })))).catch(() => {});

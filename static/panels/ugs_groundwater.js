@@ -37,7 +37,7 @@
 
   // ------------------------------------------------------------ Details: the past year
   G.register({
-    id: 'ugs_groundwater', tab: 'details', order: 40,
+    id: 'ugs_groundwater', topic: 'ground', view: 'detail', order: 40,
     mount(slot) {
       const root = el('section', { className: 'section ugs-gw' },
         el('h2', { id: 'ugs-gw-h', textContent: 'Groundwater around the lake' }),
@@ -126,7 +126,7 @@
 
   // ------------------------------------------------------------ History: yearly change since 1996, and chemistry
   G.register({
-    id: 'ugs_groundwater_hist', tab: 'history', order: 75,
+    id: 'ugs_groundwater_hist', topic: 'ground', view: 'history', order: 75,
     mount(slot) {
       const root = el('section', { className: 'section ugs-gw' },
         el('h2', { id: 'ugs-gw-hist-h', textContent: 'Groundwater levels near the lake since 1996' }),

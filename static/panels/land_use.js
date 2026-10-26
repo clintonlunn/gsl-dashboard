@@ -38,7 +38,7 @@
   };
 
   G.register({
-    id: 'land_use', tab: 'ag', order: 20,
+    id: 'land_use', topic: 'farms', view: 'detail', order: 20,
     mount(slot) {
       const basin = el('select', { id: 'lu-basin' },
         el('option', { value: '', textContent: 'All four basins' }),
