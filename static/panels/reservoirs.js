@@ -40,6 +40,10 @@
         el('h2', { textContent: 'Water held in reservoirs', id: 'res-h' }),
         el('p', { className: 'lead', id: 'res-lead', textContent: '—' }),
         el('div', { id: 'res-vis' }),
+        el('h3', { id: 'res-each-h', textContent: 'Each reservoir over these dates' }),
+        el('p', { className: 'note', id: 'res-each-note' }),
+        el('div', { className: 'chart res-each', id: 'res-each' }),
+        el('div', { id: 'res-each-table' }),
         el('p', { className: 'src', id: 'res-note' }),
         el('p', { className: 'src', id: 'res-src' }));
       root.setAttribute('aria-labelledby', 'res-h');
@@ -52,6 +56,7 @@
         lead.textContent = d?.error || 'Reservoir storage is not available for these dates.';
         lead.classList.toggle('err', !!d?.error);
         vis.replaceChildren(); note.textContent = '';
+        drawEach(null);
         cite('res-src', ...srcParts());
         return;
       }
@@ -70,6 +75,15 @@
         if (Math.abs(T.change_af) < 500) parts.push(`${when} their storage held about steady.`);
         else if (c > 0) parts.push(`${when} they gained `, b(af(c)), ". That water didn't flow on to the lake.");
         else parts.push(`${when} they let out `, b(af(-c)), ' more than flowed in; most released water goes to farms and cities, and only some of it reaches the lake.');
+        // set against the usual change for these dates, over the reservoirs that have one (a long daily record)
+        const u = T.usual_change_af, w = T.change_with_usual_af;
+        if (u != null && T.usual_change_n >= 3) {
+          const word = (v) => Math.abs(v) < 500 ? 'hold about steady' : v > 0 ? `gain ${af(roundAf(v))}` : `let out ${af(roundAf(-v))}`;
+          const diff = w - u, x = u >= 2000 && w > 0 ? w / u : null;
+          parts.push(` The ${T.usual_change_n} with a long daily record usually ${word(u)} over these dates; this time they ${word(w).replace(/^(gain|let out|hold)/, (m) => ({ gain: 'gained', 'let out': 'let out', hold: 'held' })[m])}`,
+            ...(x != null && x >= 1.5 ? [', ', b(`${x >= 3 ? Math.round(x) : x.toFixed(1)} times`), ' the usual.']
+              : Math.abs(diff) >= 2000 ? [', ', b(af(roundAf(Math.abs(diff)))), diff > 0 ? ' more than usual.' : ' less than usual.'] : [', about usual.']));
+        }
       }
       lead.replaceChildren(...parts);
 
@@ -97,9 +111,69 @@
         + `"Change" (+ filling, − drawing down) adds up reservoirs with daily readings over your dates.${lag}`
         + (monthly.length ? ` ${monthly.map(r => r.name).join(', ')} report only at month's end, so they count in storage but not in change.` : '')
         + ' Strawberry Reservoir is in the Colorado River basin; the water it sends through mountain tunnels reaches Utah Lake, so it is shown but not counted as held from the Great Salt Lake.';
+      drawEach(d);
       cite('res-src', ...srcParts());
     },
   });
+
+  // each reservoir's change over the dates, as a share of its own capacity so small and big ones compare, with its usual change
+  function drawEach(d) {
+    const note = document.getElementById('res-each-note'), wrap = document.getElementById('res-each-table');
+    const R = (d?.reservoirs || []).filter(r => r.change_af != null && r.capacity_af);
+    if (!R.length) {
+      note.textContent = 'No reservoir has readings at both ends of these dates.';
+      G.emptyChart('res-each', 'No changes to show.');
+      wrap.replaceChildren();
+      return;
+    }
+    const share = (v, r) => v == null ? null : Math.round(1000 * v / r.capacity_af) / 10;
+    const rows = R.map(r => ({ r, now: share(r.change_af, r), usual: share(r.usual_change_af, r) })).sort((a, c) => c.now - a.now);
+    const up = rows.filter(x => x.r.change_af > 0).length;
+    const more = rows.filter(x => x.usual != null && x.r.change_af - x.r.usual_change_af >= Math.max(200, 0.005 * x.r.capacity_af));
+    const top = more.slice().sort((a, c) => (c.r.change_af - c.r.usual_change_af) - (a.r.change_af - a.r.usual_change_af)).slice(0, 3);
+    note.replaceChildren(`${up} of ${rows.length} reservoirs rose. `,
+      ...(top.length ? [`${more.length} rose more than they usually do over these dates; the furthest above usual: `,
+        ...top.flatMap((x, i) => [i ? (i === top.length - 1 ? ' and ' : ', ') : '', b(x.r.name), ` (${signed(roundAf(x.r.change_af))} acre-ft, usually ${signed(roundAf(x.r.usual_change_af))})`]), '. '] : []),
+      'Each bar is the change as a share of that reservoir\'s capacity, so a small reservoir that filled fast shows as well as a big one; the tick is its usual change for the same dates.');
+
+    const ink = css('--ink'), ink2 = css('--ink-2'), paper = css('--paper');
+    const holder = document.getElementById('res-each');
+    const narrow = holder.clientWidth < 560;
+    holder.style.height = `${rows.length * (narrow ? 44 : 28) + 56}px`;
+    const o = G.base();
+    o.aria.decal = { show: false };
+    o.aria.label = { enabled: true, description: `Change in storage over these dates for ${rows.length} reservoirs, as a percent of each one's capacity, with the usual change for the same dates. `
+      + rows.map(x => `${x.r.name}: ${signed(x.r.change_af)} acre-ft (${x.now}% of capacity)${x.usual != null ? `, usually ${signed(x.r.usual_change_af)}` : ''}.`).join(' ') };
+    o.legend = { top: 0, left: 0, textStyle: { color: ink, fontSize: 12, fontFamily: css('--sans') }, itemWidth: 16, itemHeight: 10, data: ['These dates', 'Usual for these dates'] };
+    o.grid = narrow ? { left: 14, right: 18, top: 40, bottom: 20, containLabel: false } : { left: 8, right: 24, top: 36, bottom: 20, containLabel: true };
+    o.xAxis = { type: 'value', axisLabel: { color: ink2, fontSize: 12, formatter: (v) => `${v}%` }, splitLine: { lineStyle: { color: css('--grid') } } };
+    o.yAxis = { type: 'category', inverse: true, data: rows.map(x => x.r.name), axisLine: { show: !narrow, lineStyle: { color: css('--rule') } }, axisTick: { show: false },
+      axisLabel: narrow ? { inside: true, align: 'left', verticalAlign: 'bottom', padding: [0, 0, 12, 0], color: ink, fontSize: 13, fontFamily: css('--sans') }
+        : { color: ink, fontSize: 13, fontFamily: css('--sans') } };
+    o.tooltip = { ...o.tooltip, trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (ps) => {
+      const x = rows[ps[0]?.dataIndex]; if (!x) return '';
+      return [`<b>${x.r.name}</b>`, `These dates: ${signed(x.r.change_af)} acre-ft (${x.now}% of capacity)`,
+        x.usual != null ? `Usual: ${signed(x.r.usual_change_af)} acre-ft, middle of ${x.r.usual_change_years} years` : 'No usual: too few years of daily readings',
+        `Now ${fmtInt(x.r.storage_af)} of ${fmtInt(x.r.capacity_af)} acre-ft`].join('<br>');
+    } };
+    o.series = [
+      { name: 'These dates', type: 'bar', barMaxWidth: narrow ? 12 : 16, itemStyle: { color: ink2 },
+        data: rows.map(x => ({ value: x.now, itemStyle: { color: css(SYS_COLOR[x.r.system] || '--ink-2'), borderColor: paper, borderWidth: 0.5 } })) },
+      { name: 'Usual for these dates', type: 'scatter', symbol: 'rect', symbolSize: [3, narrow ? 16 : 20], itemStyle: { color: ink }, z: 5,
+        data: rows.map(x => x.usual) },
+    ];
+    const ch = G.chart('res-each');
+    ch.resize();
+    ch.setOption(o, true);
+
+    wrap.replaceChildren(el('details', {}, el('summary', { textContent: 'The numbers' }),
+      el('div', { className: 'tablewrap' }, el('table', { className: 'res-each-table' },
+        el('caption', { className: 'sr-only', textContent: 'Change in storage over these dates and the usual change for the same dates, acre-feet, by reservoir.' }),
+        el('thead', {}, el('tr', {}, ...['Reservoir', 'Change', 'Usual', '% of capacity'].map(t => el('th', { scope: 'col', textContent: t })))),
+        el('tbody', {}, ...rows.map(x => el('tr', {}, el('th', { scope: 'row' }, key(x.r.system), x.r.name),
+          el('td', { textContent: signed(x.r.change_af) }), el('td', { textContent: x.r.usual_change_af == null ? '—' : signed(x.r.usual_change_af) }),
+          el('td', { textContent: `${x.now > 0 ? '+' : ''}${x.now}%` }))))))));
+  }
 
   // ------------------------------------------------------------ Details: every reservoir
   G.register({

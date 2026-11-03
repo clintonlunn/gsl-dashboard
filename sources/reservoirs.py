@@ -329,11 +329,18 @@ def query(con, window):
         past = [v for y in range(day.year - PAST_YEARS, day.year)
                 if (v := S.value_on(rid, _same_day(day, y))) is not None]
         med = _median(past) if len(past) >= MIN_YEARS else None
+        # usual change over the same dates: daily values only, so a month-end fallback can't fake a change
+        dd = S.daily.get(rid, {})
+        past_ch = [] if change is None else [
+            dd[b] - dd[a] for y in range(day.year - PAST_YEARS, day.year)
+            if (a := _same_day(d0, y - (day.year - d0.year))) in dd and (b := _same_day(day, y)) in dd]
+        usual_ch = _median(past_ch) if len(past_ch) >= MIN_YEARS else None
         rows.append({
             "id": rid, "name": name, "system": sys_, "storage_af": _r(af), "as_of": day.isoformat(),
             "capacity_af": _r(cap), "pct_full": None if not cap else round(100 * af / cap, 1),
             "change_af": _r(change), "change_from": d0.isoformat() if change is not None else None,
             "median_af": _r(med), "median_years": len(past) if med is not None else None,
+            "usual_change_af": _r(usual_ch), "usual_change_years": len(past_ch) if usual_ch is not None else None,
             "freq": "monthly" if monthly else "daily",
             "src": "Utah Division of Water Rights" if wr else "NRCS AWDB",
             "station": wr if wr else trip, "link": _link(rid), "note": NOTES.get(rid)})
@@ -352,8 +359,12 @@ def query(con, window):
         med = sum(r["median_af"] for r in wm) if wm else None
         st_m = sum(r["storage_af"] for r in wm)
         days = sorted(now_day[r["id"]] for r in live if r["freq"] == "daily")
+        # usual change, over the reservoirs that have both a change and a usual change, set against their change
+        wu = [r for r in ch if r.get("usual_change_af") is not None]
         return {"storage_af": st, "capacity_af": cap, "pct_full": round(100 * st / cap, 1) if cap else None,
                 "change_af": sum(r["change_af"] for r in ch) if ch else None, "change_n": len(ch),
+                "usual_change_af": sum(r["usual_change_af"] for r in wu) if wu else None,
+                "change_with_usual_af": sum(r["change_af"] for r in wu) if wu else None, "usual_change_n": len(wu),
                 "median_af": med, "median_n": len(wm), "storage_with_median_af": st_m,
                 "pct_of_median": round(100 * st_m / med) if med else None, "n": len(live),
                 "through": days[-1].isoformat() if days else None, "oldest": days[0].isoformat() if days else None}
